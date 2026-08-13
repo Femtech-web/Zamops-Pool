@@ -12,12 +12,13 @@ concurrency:
 jobs:
   advance-pools:
     runs-on: ubuntu-latest
+    environment: Zamops-pool
     timeout-minutes: 45
     defaults:
       run:
         working-directory: contracts
     env:
-      SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+      SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || vars.SEPOLIA_RPC_URL }}
       KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
       KEEPER_PRIZE_CONFIG_JSON: ${{ vars.KEEPER_PRIZE_CONFIG_JSON }}
       KEEPER_FUNDING_ENABLED: "true"
@@ -30,6 +31,17 @@ jobs:
       KEEPER_REPORT_PATH: reports/pool-keeper.json
     steps:
       - uses: actions/checkout@v4
+      - name: Validate keeper configuration
+        shell: bash
+        run: |
+          if [[ -z "$SEPOLIA_RPC_URL" ]]; then
+            echo "::error::SEPOLIA_RPC_URL is empty. Add it as a repository secret or Actions variable."
+            exit 1
+          fi
+          if [[ -z "$KEEPER_PRIVATE_KEY" ]]; then
+            echo "::error::KEEPER_PRIVATE_KEY is empty. Add it as a repository secret."
+            exit 1
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 20

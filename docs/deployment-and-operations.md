@@ -47,6 +47,18 @@ The workflow:
 6. publishes a Markdown summary and structured JSON report;
 7. emits actionable GitHub annotations on failures.
 
+### GitHub Actions environment
+
+The keeper job targets the GitHub Environment named `Zamops-pool`. Configure these values inside that environment:
+
+| Type | Name | Purpose |
+|---|---|---|
+| Secret | `KEEPER_PRIVATE_KEY` | Unprivileged keeper signer |
+| Secret or variable | `SEPOLIA_RPC_URL` | Sepolia JSON-RPC endpoint |
+| Variable | `KEEPER_PRIZE_CONFIG_JSON` | Per-pool mock-yield funding policy |
+
+Environment-scoped secrets are not exposed to a job unless the workflow declares `environment: Zamops-pool`. The workflow does so and validates the RPC URL and keeper key before dependency installation. If the environment has required-review protection, scheduled runs will wait for approval; avoid that protection rule for unattended ten-minute automation.
+
 ## Delayed permissionless fallback
 
 The UI does not compete with healthy automation. Once an eligible draw has remained untouched for about 80 minutes after reopening, it offers any saver the next valid permissionless step. The action advances one state transition; it cannot choose a winner or bypass cryptographic proof checks.
@@ -63,4 +75,3 @@ Operators should alert on stale RPC/indexer blocks, insufficient keeper gas, ins
 4. set `NEXT_PUBLIC_SITE_URL` to the public origin and rebuild if necessary.
 5. Run the [judge demo journey](judge-demo-guide.md) through MetaMask or Rabby on the public URL.
 6. Retain screenshots and transaction links for the submission.
-

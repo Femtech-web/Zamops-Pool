@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type Theme = "light" | "dark";
 
@@ -14,35 +14,50 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = "zamops-pool-theme-v2";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    const initialTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
     const restoreTheme = window.setTimeout(() => {
-      setTheme(initialTheme);
-      setMounted(true);
+      const savedTheme = window.localStorage.getItem(STORAGE_KEY);
+      const initialTheme: Theme = savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : document.documentElement.dataset.theme === "light" ? "light" : "dark";
+      setThemeState(initialTheme);
+      applyTheme(initialTheme);
     }, 0);
     return () => window.clearTimeout(restoreTheme);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [mounted, theme]);
+  const setTheme = useCallback((nextTheme: Theme) => {
+    setThemeState(nextTheme);
+    applyTheme(nextTheme);
+    window.localStorage.setItem(STORAGE_KEY, nextTheme);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((current) => {
+      const nextTheme = current === "light" ? "dark" : "light";
+      applyTheme(nextTheme);
+      window.localStorage.setItem(STORAGE_KEY, nextTheme);
+      return nextTheme;
+    });
+  }, []);
 
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
       setTheme,
-      toggleTheme: () => setTheme((current) => (current === "light" ? "dark" : "light")),
+      toggleTheme,
     }),
-    [theme],
+    [setTheme, theme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
 }
 
 export function useTheme() {

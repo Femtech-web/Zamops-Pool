@@ -2,20 +2,18 @@
 
 ### Save privately. Win fairly. Keep your principal.
 
-ZamOps Pool is a no-loss prize-savings prototype built on [Zama FHEVM](https://docs.zama.ai/protocol). Deposit confidential ERC-7984 tokens, receive encrypted odds proportional to your savings, and withdraw your principal independently of the draw. Amounts, balances, selection and winnings remain encrypted while the protocol runs on a public chain.
-
-> **Release status:** canonical contracts and complete multi-wallet journeys are live on Sepolia. The final frontend URL will be added after the stable build is deployed manually.
+ZamOps Pool is a confidential no-loss prize-savings protocol built on [Zama FHEVM](https://docs.zama.ai/protocol). Savers Shield ERC-20 assets into ERC-7984 confidential tokens, deposit without publishing the amount, receive encrypted odds proportional to their savings, and remain free to withdraw their principal throughout the draw lifecycle.
 
 | | |
 |---|---|
 | Network | Ethereum Sepolia (`11155111`) |
-| Live app | Pending manual frontend deployment |
 | FHE | Zama FHEVM Solidity `0.11.1`, relayer SDK `0.4.1` |
 | Confidential token standard | OpenZeppelin ERC-7984 |
 | Activity index | Goldsky |
 | Canonical factory | [`0xEB98…4Aa2`](https://sepolia.etherscan.io/address/0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2) |
+| Languages | English, Spanish, French, Simplified Chinese, Korean, Vietnamese |
 
-## Judge path: understand it in three minutes
+## Understand the complete journey in three minutes
 
 1. Connect MetaMask or Rabby on Sepolia and claim a faucet token.
 2. Open **Tokens**, Shield part of the public balance, and reveal/hide confidential balances.
@@ -24,7 +22,19 @@ ZamOps Pool is a no-loss prize-savings prototype built on [Zama FHEVM](https://d
 5. Show the automated draw status and permissionless delayed fallback.
 6. Reveal winnings, claim the prize, then withdraw the unchanged principal.
 
-The full prepared route is in the [judge demo guide](docs/judge-demo-guide.md). Existing on-chain journeys can be audited immediately in [testing and release evidence](docs/testing-and-release-evidence.md).
+The presentation-ready route is in the [demo guide](docs/judge-demo-guide.md). Existing on-chain journeys can be audited immediately in [testing and release evidence](docs/testing-and-release-evidence.md).
+
+## The complete confidential flow
+
+| Stage | What the saver does | What happens onchain |
+|---|---|---|
+| 1. Obtain | Requests a supported Sepolia test token | The sponsored faucet mints a public ERC-20 or transfers funded inventory |
+| 2. Shield | Approves the wrapper and chooses a private amount | The Zama registry wrapper converts the ERC-20 into an ERC-7984 confidential balance |
+| 3. Deposit | Authorizes the pool and submits an encrypted amount | The browser produces an encrypted input/proof; the pool credits encrypted principal and draw weight |
+| 4. Reveal | Selects Reveal and signs a viewing request | EIP-712 user decryption reveals only the connected wallet's authorized value; it sends no transaction |
+| 5. Draw | Waits for automation or uses the delayed fallback | Permissionless contract calls publicly verify only the aggregate, sample with FHE randomness and scan encrypted weights |
+| 6. Claim | Reveals winnings, then claims a positive balance | The pool clears encrypted winnings and confidentially transfers the prize to the winner |
+| 7. Withdraw | Requests up to the privately checked principal | Principal is confidentially returned at any lifecycle stage |
 
 ## Why this is different
 
@@ -54,6 +64,14 @@ The draw interval is 60 minutes and automation checks every 10 minutes. A health
 
 Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for weighted selection, rejection sampling, empty draws and the no-loss invariant.
 
+## Zama integration, end to end
+
+The browser uses the Zama React/Relayer SDK to build encrypted `euint64` inputs for the exact destination contract. Solidity imports them with `FHE.fromExternal`, performs accounting and comparisons over ciphertexts, and explicitly grants contract, user and transient token permissions with the FHEVM ACL.
+
+For selection, `FHE.randEuint64` samples encrypted candidates below the next power-of-two bound. Encrypted rejection sampling removes modulo bias; encrypted cumulative-weight comparisons select the winning interval. No offchain service receives plaintext balances or chooses the winner. The keeper only pays gas and submits permissionless lifecycle calls.
+
+For viewing, the connected wallet signs an EIP-712 authorization. The Zama relayer checks that the user has ACL access to the current ciphertext handle and returns that value to the browser. Reveal does not publish the value or create an onchain transaction.
+
 ## Privacy at a glance
 
 | Information | Visibility |
@@ -66,6 +84,22 @@ Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for we
 | Wallet addresses, transaction timing and lifecycle state | Public blockchain metadata |
 
 FHE provides value confidentiality, not anonymity. The complete boundary and ACL lifecycle are documented in [architecture and privacy](docs/architecture-and-privacy.md).
+
+## No loss, with honest testnet yield
+
+Principal, prize reserve and winnings are separate encrypted ledgers. Draw completion moves only the frozen prize reserve into one saver's winnings; it never moves another saver's principal. Withdrawals are available during Open, decryption, selection and synchronization states.
+
+Sepolia prizes are separately funded mock yield. The keeper funds only participating, eligible pools according to explicit per-token policy. If the eligible aggregate is zero, the draw is cancelled and its encrypted prize returns to the reserve for a later valid draw. A production adapter could route real strategy yield into `fundPrize` while preserving the same custody boundary; strategy principal should never be treated as prize liquidity.
+
+## Built for real wallet conditions
+
+The interface distinguishes authorization signatures from transactions and translates missing approval, insufficient public or private balance, wrong network, unsupported assets, faucet cooldown/inventory, rejected signatures, stale ciphertexts, relayer failures and keeper delays into human-readable recovery steps. Hidden zero Claim or Withdraw balances are privately checked first, so the app shows an informational message without opening a zero-value transaction prompt.
+
+Activity is reconstructed from Goldsky's public event projection. Indexed encrypted handles remain ciphertext; users can reveal an authorized amount inline or in its detail view. Clearing browser storage removes local presentation state, not the on-chain history.
+
+## International by design
+
+The entire application is available in English, Spanish, French, Simplified Chinese, Korean and Vietnamese. All six catalogs contain the same 257 typed messages, including wallet, encryption, draw, recovery and accessibility copy. Locale and light/dark preferences persist locally, while decrypted financial values do not.
 
 ## Canonical Sepolia deployment
 
@@ -93,7 +127,25 @@ FHE provides value confidentiality, not anonymity. The complete boundary and ACL
 | ctGBP inventory | [`0x167d…a208`](https://sepolia.etherscan.io/address/0x167dc962808b32cfffc7e14b5018c0be06a3a208) | [`0x88CD…b427`](https://sepolia.etherscan.io/address/0x88CDE42A020956167FA2c79Ffa26D7B5918Fb427) | Sponsor inventory required |
 | csteakcUSDC | [`0x13f7…28c4`](https://sepolia.etherscan.io/address/0x13f7d34a4f0102734f19e3ff16e068fe194b28c4) | [`0x29c1…f9a1`](https://sepolia.etherscan.io/address/0x29c1b12004E649cF67E3a2A37Fc24A91Bd9bf9a1) | Sponsor inventory required |
 
-Source verification is run with `npm --prefix contracts run verify:canonical:sepolia`; it requires a local `ETHERSCAN_API_KEY`.
+Optional Etherscan source publication can be run with `npm --prefix contracts run verify:canonical:sepolia`. Verification is not required to exercise the deployed contracts, and every address links directly to its Sepolia activity and bytecode.
+
+## Bounty requirement coverage
+
+| Requirement | Implementation and proof |
+|---|---|
+| Public web dApp | Next.js wallet application prepared for the final public deployment |
+| Deposit → draw → claim → withdraw | Completed on canonical cUSDC and fresh-wallet cUSDT journeys |
+| Encrypted deposits and balances | ERC-7984 custody plus `euint64` principal, weights, prize reserve and winnings |
+| Weighted onchain FHE randomness | `FHE.randEuint64`, unbiased encrypted rejection sampling and encrypted prefix selection |
+| No offchain RNG or plaintext balances | Draw computation lives in `ConfidentialPrizePool`; the keeper has no selection privilege |
+| Documented leakage | Explicit encrypted/public table plus aggregate, timing and metadata limitations |
+| No-loss principal | Separate accounting and withdrawal in every draw state, covered by tests and Sepolia journeys |
+| Automated/documented draws | Ten-minute keeper, health reports and delayed permissionless fallback |
+| EIP-712 user decryption | Connected-wallet principal, winnings, token balance and indexed-activity reveals |
+| Faucet and test assets | Sponsored faucet for public-mint assets; truthful inventory handling for restricted assets |
+| Zama frontend integration | React SDK, relayer-backed encryption/decryption and viem/wagmi wallet clients |
+| Error handling | Approval, balance, network, token, faucet, decryption and automation recovery paths |
+| Open source | Contracts, frontend, indexer, keeper, tests and documentation live in this repository |
 
 ## Tested evidence
 
