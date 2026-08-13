@@ -222,28 +222,36 @@ async function advanceToOpen(
   asset: string,
 ) {
   const poolAddress = await pool.getAddress();
+  let state = Number(await pool.state());
   for (let step = 0; step < 20; step += 1) {
-    const state = Number(await pool.state());
+    let mined: Awaited<ReturnType<typeof recordTransaction>>;
     if (state === 0) {
       if (Number(await pool.nextDrawAt()) > Math.floor(Date.now() / 1_000)) return;
-      records.push(await recordTransaction(poolAddress, asset, "request draw", pool.requestDraw({ gasLimit: 2_000_000 })));
+      mined = await recordTransaction(poolAddress, asset, "request draw", pool.requestDraw({ gasLimit: 2_000_000 }));
     } else if (state === 1 || state === 3) {
       const handle = state === 1 ? await pool.totalWeightHandle() : await pool.resultHandle();
       const decrypted = await fhevm.publicDecrypt([handle]);
-      records.push(await recordTransaction(
+      mined = await recordTransaction(
         poolAddress,
         asset,
         state === 1 ? "verify aggregate and start selection" : "verify selection result",
         state === 1
           ? pool.startSelection([handle], decrypted.abiEncodedClearValues, decrypted.decryptionProof, { gasLimit: 3_500_000 })
           : pool.finalizeSelection([handle], decrypted.abiEncodedClearValues, decrypted.decryptionProof, { gasLimit: 2_500_000 }),
-      ));
+      );
     } else if (state === 2) {
-      records.push(await recordTransaction(poolAddress, asset, "process encrypted selection", pool.processSelectionBatch(BATCH_SIZE, { gasLimit: 3_000_000 })));
+      mined = await recordTransaction(poolAddress, asset, "process encrypted selection", pool.processSelectionBatch(BATCH_SIZE, { gasLimit: 3_000_000 }));
     } else if (state === 4) {
-      records.push(await recordTransaction(poolAddress, asset, "prepare next draw", pool.processNextDrawSyncBatch(BATCH_SIZE, { gasLimit: 3_000_000 })));
+      mined = await recordTransaction(poolAddress, asset, "prepare next draw", pool.processNextDrawSyncBatch(BATCH_SIZE, { gasLimit: 3_000_000 }));
+    } else {
+      throw new Error(`unknown draw state ${state}`);
     }
-    if (Number(await pool.state()) === 0 && Number(await pool.nextDrawAt()) > Math.floor(Date.now() / 1_000)) return;
+    records.push(mined.record);
+
+    // A public RPC may briefly route `latest` reads to a lagging backend. Pin the
+    // lifecycle read to the receipt block so a confirmed transition is never repeated.
+    state = Number(await pool.state({ blockTag: mined.blockNumber }));
+    if (state === 0 && Number(await pool.nextDrawAt({ blockTag: mined.blockNumber })) > Math.floor(Date.now() / 1_000)) return;
   }
   throw new Error("draw did not return to open state within 20 keeper actions");
 }
@@ -292,11 +300,14 @@ async function prizeAlreadyPrepared(pool: ReturnType<typeof ConfidentialPrizePoo
   return currentFunded;
 }
 
-async function recordTransaction(pool: string, asset: string, action: string, pending: Promise<ContractTransactionResponse>): Promise<RunRecord> {
+async function recordTransaction(pool: string, asset: string, action: string, pending: Promise<ContractTransactionResponse>) {
   const transaction = await pending;
   const receipt = await transaction.wait();
   if (!receipt) throw new Error(`${action} transaction was not mined`);
-  return { pool, asset, action, status: "confirmed", hash: transaction.hash, gasUsed: receipt.gasUsed.toString() };
+  return {
+    blockNumber: receipt.blockNumber,
+    record: { pool, asset, action, status: "confirmed", hash: transaction.hash, gasUsed: receipt.gasUsed.toString() } satisfies RunRecord,
+  };
 }
 
 async function mine(pending: Promise<ContractTransactionResponse>) {

@@ -67,6 +67,8 @@ The UI does not compete with healthy automation. Once an eligible draw has remai
 
 Operators should alert on stale RPC/indexer blocks, insufficient keeper gas, insufficient faucet sponsor gas, repeated proof/decryption failures, or a pool remaining in a non-open state across multiple runs. The keeper report includes state, draw ID, participant count, next-draw time, transactions, gas, HCU/depth when available, and latency.
 
+After each confirmed lifecycle transaction, the keeper reads the pool at that receipt's exact block number. This avoids repeating a completed transition when a load-balanced public RPC briefly serves a stale `latest` state. Keep the keeper comfortably above the configured ETH floor; a multi-pool FHE draw can require several comparatively expensive transactions in one run.
+
 ## Release sequence
 
 1. Run contract and frontend checks.
