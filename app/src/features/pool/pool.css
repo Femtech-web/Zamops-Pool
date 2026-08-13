@@ -184,21 +184,23 @@
 .activity-ledger { margin-top: 42px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .activity-ledger ol { margin: 0; padding: 0; list-style: none; }
 .activity-ledger li + li { border-top: 1px solid var(--line); }
-.activity-ledger-row { display: grid; min-height: 82px; padding: 16px 20px; grid-template-columns: minmax(190px, 1fr) minmax(130px, .7fr) minmax(130px, .75fr) auto auto; align-items: center; gap: 16px; }
+.activity-ledger-row { position: relative; display: grid; min-height: 82px; padding: 16px 20px; cursor: pointer; grid-template-columns: minmax(190px, 1fr) minmax(130px, .7fr) minmax(130px, .75fr) auto auto; align-items: center; gap: 16px; }
 .activity-ledger-row:hover { background: var(--surface); }
+.activity-row-hitbox { position: absolute; z-index: 1; border-radius: 7px; inset: 2px; }
+.activity-row-hitbox:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
 .activity-row-main { display: grid; min-width: 0; color: inherit; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 16px; }
 .activity-ledger li img { border-radius: 50%; object-fit: contain; }
 .activity-ledger li strong { font-size: 11px; }
 .activity-ledger li p { margin: 4px 0 0; color: var(--faint); font-size: 9px; }
 .activity-ledger time { color: var(--muted); font-size: 9px; }
 .activity-status { display: inline-flex; color: var(--yield); font-size: 9px; font-weight: 680; align-items: center; gap: 5px; }
-.activity-row-amount { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 7px; }
+.activity-row-amount { position: relative; z-index: 2; display: flex; min-width: 0; cursor: default; align-items: center; justify-content: flex-end; gap: 7px; }
 .activity-row-amount strong { overflow: hidden; font-family: "Instrument Sans Variable", sans-serif; font-size: 10px; font-weight: 560; text-overflow: ellipsis; white-space: nowrap; }
 .activity-row-amount button { display: grid; width: 30px; height: 30px; flex: 0 0 auto; border: 0; border-radius: 5px; background: transparent; color: var(--muted); place-items: center; }
 .activity-row-amount button:hover { background: var(--paper); color: var(--ink); }
 .activity-row-no-amount { color: var(--faint); font-size: 10px; text-align: right; }
 .activity-row-arrow { display: grid; width: 30px; height: 30px; color: var(--faint); place-items: center; }
-.activity-row-arrow:hover { color: var(--ink); transform: translateX(2px); }
+.activity-ledger-row:hover .activity-row-arrow { color: var(--ink); transform: translateX(2px); }
 .activity-token-placeholder { width: 34px; height: 34px; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface); }
 .activity-kind-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid color-mix(in srgb, var(--yield) 38%, var(--line)); border-radius: 50%; background: var(--yield-soft); color: var(--yield); place-items: center; }
 .activity-kind-icon--small { width: 28px; height: 28px; }

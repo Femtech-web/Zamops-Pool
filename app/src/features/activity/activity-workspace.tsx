@@ -51,14 +51,15 @@ export function ActivityWorkspace({ initialItemId }: { initialItemId?: string })
 function ActivityRow({ item }: { item: ActivityItem }) {
   const { t } = useI18n();
   return <li className="activity-ledger-row">
-    <Link className="activity-row-main" href={`/app/activity?item=${item.id}`}>
+    <Link className="activity-row-hitbox" href={`/app/activity?item=${item.id}`} aria-label={`${item.title}. ${t("activity.viewDetails")}`} />
+    <div className="activity-row-main">
       {item.assetIcon ? <Image src={item.assetIcon} alt="" width={34} height={34} /> : item.kind === "tokens" ? <span className="activity-kind-icon activity-kind-icon--tokens" aria-hidden="true"><ArrowDownToLine size={14} /></span> : <span className="activity-token-placeholder" />}
       <div><strong>{item.title}</strong><p>{item.assetSymbol ?? t("activity.action")}</p></div>
-    </Link>
+    </div>
     <time dateTime={new Date(item.timestamp).toISOString()}>{formatDate(item.timestamp)}</time>
     <ActivityRowAmount item={item} />
     <span className="activity-status"><Check size={11} /> {t("activity.confirmed")}</span>
-    <Link className="activity-row-arrow" href={`/app/activity?item=${item.id}`} aria-label={t("activity.viewDetails")}><ArrowRight size={14} aria-hidden="true" /></Link>
+    <span className="activity-row-arrow" aria-hidden="true"><ArrowRight size={14} /></span>
   </li>;
 }
 
