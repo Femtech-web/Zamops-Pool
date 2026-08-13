@@ -56,8 +56,18 @@ The keeper job targets the GitHub Environment named `Zamops-pool`. Configure the
 | Secret | `KEEPER_PRIVATE_KEY` | Unprivileged keeper signer |
 | Secret or variable | `SEPOLIA_RPC_URL` | Sepolia JSON-RPC endpoint |
 | Variable | `KEEPER_PRIZE_CONFIG_JSON` | Per-pool mock-yield funding policy |
+| Variable | `KEEPER_ENABLED` | Set to `false` to skip the entire keeper job; unset or `true` to run it |
+| Variable | `KEEPER_FUNDING_ENABLED` | Set to `false` to stop mock-prize funding while monitoring and draw advancement continue |
 
 Environment-scoped secrets are not exposed to a job unless the workflow declares `environment: Zamops-pool`. The workflow does so and validates the RPC URL and keeper key before dependency installation. If the environment has required-review protection, scheduled runs will wait for approval; avoid that protection rule for unattended ten-minute automation.
+
+### Pausing automation
+
+Use the non-secret GitHub Environment variable `KEEPER_ENABLED` as the master switch. Set it to `false` to pause all scheduled and manually dispatched keeper execution. The job is skipped before setup, so it submits no transactions and spends no keeper gas. Set it back to `true` (or delete the variable) to resume on the next ten-minute schedule.
+
+`KEEPER_FUNDING_ENABLED` is narrower. When it is `false`, the keeper does not prepare new mock prizes, but it still inspects services and pools and advances any eligible or in-progress draw. It can therefore still spend gas. Disabling funding does not remove a prize already deposited in a pool.
+
+Pausing the offchain keeper does not pause the contracts. Principal remains withdrawable, and after the documented delay the frontend's permissionless fallback can allow a saver to advance a due draw.
 
 ## Delayed permissionless fallback
 

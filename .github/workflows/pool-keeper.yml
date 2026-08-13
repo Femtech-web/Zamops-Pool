@@ -18,10 +18,11 @@ jobs:
       run:
         working-directory: contracts
     env:
+      KEEPER_ENABLED: ${{ vars.KEEPER_ENABLED || 'true' }}
       SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || vars.SEPOLIA_RPC_URL }}
       KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
       KEEPER_PRIZE_CONFIG_JSON: ${{ vars.KEEPER_PRIZE_CONFIG_JSON }}
-      KEEPER_FUNDING_ENABLED: "true"
+      KEEPER_FUNDING_ENABLED: ${{ vars.KEEPER_FUNDING_ENABLED || 'true' }}
       KEEPER_MIN_BALANCE_ETH: ${{ vars.KEEPER_MIN_BALANCE_ETH || '0.02' }}
       KEEPER_STALL_THRESHOLD_MINUTES: ${{ vars.KEEPER_STALL_THRESHOLD_MINUTES || '20' }}
       KEEPER_RPC_MAX_BLOCK_AGE_SECONDS: ${{ vars.KEEPER_RPC_MAX_BLOCK_AGE_SECONDS || '180' }}
@@ -30,8 +31,22 @@ jobs:
       KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH: ${{ vars.KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH || '0.02' }}
       KEEPER_REPORT_PATH: reports/pool-keeper.json
     steps:
-      - uses: actions/checkout@v4
+      - name: Read keeper control
+        id: keeper-control
+        working-directory: .
+        shell: bash
+        run: |
+          if [[ "$KEEPER_ENABLED" == "false" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "## Sepolia pool keeper" >> "$GITHUB_STEP_SUMMARY"
+            echo "Paused by the Zamops-pool Environment variable KEEPER_ENABLED=false. No transactions were submitted." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.keeper-control.outputs.enabled == 'true'
+        uses: actions/checkout@v4
       - name: Validate keeper configuration
+        if: steps.keeper-control.outputs.enabled == 'true'
         shell: bash
         run: |
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
@@ -42,15 +57,18 @@ jobs:
             echo "::error::KEEPER_PRIVATE_KEY is empty. Add it as a repository secret."
             exit 1
           fi
-      - uses: actions/setup-node@v4
+      - if: steps.keeper-control.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: contracts/package-lock.json
-      - run: npm ci
-      - run: npm run keeper:sepolia
+      - if: steps.keeper-control.outputs.enabled == 'true'
+        run: npm ci
+      - if: steps.keeper-control.outputs.enabled == 'true'
+        run: npm run keeper:sepolia
       - name: Upload keeper report
-        if: always()
+        if: always() && steps.keeper-control.outputs.enabled == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pool-keeper-${{ github.run_id }}

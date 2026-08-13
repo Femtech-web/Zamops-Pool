@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 
 import { LanguagePicker } from "@/features/shell/language-picker";
 import { useI18n } from "@/i18n/i18n-provider";
+
+function LaunchArrow() {
+  return (
+    <span className="landing-launch-arrow" aria-hidden="true">
+      <span className="landing-launch-arrow-glyph">↗</span>
+      <ArrowUpRight className="landing-launch-arrow-icon" size={15} strokeWidth={2} />
+    </span>
+  );
+}
 
 export function LandingPage() {
   const { t } = useI18n();
@@ -34,7 +44,7 @@ export function LandingPage() {
           <p className="landing-kicker">{t("landing.kicker")}</p>
           <h1>{t("landing.title")}</h1>
           <p>{t("landing.intro")}</p>
-          <Link className="landing-launch" href="/app">{t("landing.launch")} <span>↗</span></Link>
+          <Link className="landing-launch" href="/app">{t("landing.launch")} <LaunchArrow /></Link>
         </div>
         <p className="landing-network"><i />{t("network.sepolia")}</p>
       </section>
@@ -67,7 +77,7 @@ export function LandingPage() {
       <section className="landing-close">
         <p>{t("landing.closeKicker")}</p>
         <h2>{t("landing.closeTitle")}</h2>
-        <Link href="/app">{t("landing.launch")} <span>↗</span></Link>
+        <Link href="/app">{t("landing.launch")} <LaunchArrow /></Link>
       </section>
 
       <footer className="landing-footer">

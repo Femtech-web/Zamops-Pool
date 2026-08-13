@@ -138,7 +138,8 @@
   transition: transform 160ms ease, box-shadow 160ms ease;
 }
 .landing-launch:hover { transform: translateY(-2px); box-shadow: 0 12px 42px rgba(248, 223, 117, 0.16); }
-.landing-launch span, .landing-close a span { font-size: 15px; }
+.landing-launch-arrow { display: inline-flex; font-size: 15px; line-height: 1; }
+.landing-launch-arrow-icon { display: none; }
 .landing-network { position: absolute; bottom: 41px; display: inline-flex; margin: 0; color: #81837d; align-items: center; gap: 8px; font-size: 11px; }
 .landing-network i { width: 6px; height: 6px; border-radius: 50%; background: #6bac7b; box-shadow: 0 0 0 4px rgba(107, 172, 123, 0.1); }
 
@@ -205,6 +206,8 @@
   .landing-brand span { display: none; }
   .landing-actions .language-trigger span, .landing-actions .language-trigger svg:last-child { display: none; }
   .landing-launch-small { display: none; }
+  .landing-launch-arrow-glyph { display: none; }
+  .landing-launch-arrow-icon { display: block; }
   .landing-hero { min-height: 760px; padding-right: 18px; padding-left: 18px; }
   .landing-hero h1 { max-width: 100%; font-size: clamp(48px, 15vw, 68px); overflow-wrap: anywhere; }
   .landing-hero-copy > p:nth-of-type(2) { font-size: 14px; }
