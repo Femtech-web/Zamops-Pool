@@ -10,7 +10,7 @@ export function LandingPage() {
   const { t } = useI18n();
 
   return (
-    <main className="landing-shell">
+    <main className="landing-shell" id="main-content" tabIndex={-1}>
       <header className="landing-header">
         <Link className="landing-brand" href="/" aria-label="ZamOps Pool home">
           <Image src="/brand/zamops-icon-invert.svg" alt="" width={30} height={30} priority />

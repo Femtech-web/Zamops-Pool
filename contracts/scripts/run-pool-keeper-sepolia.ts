@@ -1,5 +1,7 @@
 import { ethers, fhevm, network } from "hardhat";
 import type { ContractTransactionResponse } from "ethers";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import {
   ConfidentialPrizePool__factory,
@@ -12,9 +14,14 @@ import {
 const SEPOLIA_CHAIN_ID = 11_155_111n;
 const DEFAULT_FACTORY = "0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2";
 const DEFAULT_FAUCET = "0x6148D5A8B6023CC52aC3cc71d22a7340B5b2Cc9F";
+const DEFAULT_FAUCET_SPONSOR = "0xd04BBA49865f57840D4F03CCf541961906843AF1";
 const MAX_EXPIRY = 281_474_976_710_655n;
 const DEPLOYMENT_BLOCK = 11_477_441;
 const BATCH_SIZE = 8;
+const DEFAULT_MIN_BALANCE_ETH = "0.02";
+const DEFAULT_STALL_THRESHOLD_MINUTES = 20;
+const DEFAULT_RPC_MAX_BLOCK_AGE_SECONDS = 180;
+const DEFAULT_GOLDSKY_URL = "https://api.goldsky.com/api/public/project_cmsqxy20s9sno01ulf3j3aoqt/subgraphs/zamops-pool-sepolia/v0.0.3/gn";
 
 type PrizePolicy = { symbol: string; amount: string };
 const PUBLIC_MINT_POLICIES: Record<string, PrizePolicy> = {
@@ -27,9 +34,39 @@ const PUBLIC_MINT_POLICIES: Record<string, PrizePolicy> = {
   "0xe4fcf848739845bc81dee1d5352cf3844f0a60c7": { symbol: "cXAUt", amount: "1" },
 };
 
-type RunRecord = { pool: string; asset: string; action: string; status: "confirmed" | "skipped" | "failed"; hash?: string; reason?: string };
+type RunRecord = {
+  pool: string;
+  asset: string;
+  action: string;
+  status: "confirmed" | "skipped" | "failed";
+  hash?: string;
+  gasUsed?: string;
+  reason?: string;
+};
+
+type KeeperAlert = { kind: "low-balance" | "stalled-draw" | "rpc-stale" | "goldsky-unhealthy" | "faucet-sponsor"; message: string; pool?: string; asset?: string };
+
+type KeeperReport = {
+  version: 2;
+  startedAt: string;
+  completedAt: string;
+  status: "ok" | "warning" | "failed";
+  network: string;
+  chainId: string;
+  dryRun: boolean;
+  keeper: { address: string; startingBalanceWei: string; endingBalanceWei: string; minimumBalanceWei: string };
+  monitoring: {
+    stallThresholdMinutes: number;
+    rpc: { latestBlock: number; blockAgeSeconds: number; maximumBlockAgeSeconds: number };
+    goldsky: { endpoint: string; indexedBlock?: number; hasIndexingErrors?: boolean; healthy: boolean };
+    faucetSponsor: { address: string; authorized: boolean; balanceWei: string; minimumBalanceWei: string };
+    alerts: KeeperAlert[];
+  };
+  records: RunRecord[];
+};
 
 async function main() {
+  const startedAt = new Date().toISOString();
   const chain = await ethers.provider.getNetwork();
   if (network.name !== "sepolia" || chain.chainId !== SEPOLIA_CHAIN_ID) throw new Error("Keeper is Sepolia-only");
   await fhevm.initializeCLIApi();
@@ -40,14 +77,31 @@ async function main() {
   const faucetAddress = process.env.KEEPER_FAUCET_ADDRESS ?? DEFAULT_FAUCET;
   const fundingEnabled = process.env.KEEPER_FUNDING_ENABLED !== "false";
   const dryRun = process.env.KEEPER_DRY_RUN === "true";
+  const onlyPool = process.env.KEEPER_POOL_ADDRESS ? ethers.getAddress(process.env.KEEPER_POOL_ADDRESS) : undefined;
+  const minimumBalance = ethers.parseEther(process.env.KEEPER_MIN_BALANCE_ETH ?? DEFAULT_MIN_BALANCE_ETH);
+  const faucetSponsorMinimumBalance = ethers.parseEther(process.env.KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH ?? DEFAULT_MIN_BALANCE_ETH);
+  const stallThresholdMinutes = positiveInteger(process.env.KEEPER_STALL_THRESHOLD_MINUTES, DEFAULT_STALL_THRESHOLD_MINUTES);
+  const maximumBlockAgeSeconds = positiveInteger(process.env.KEEPER_RPC_MAX_BLOCK_AGE_SECONDS, DEFAULT_RPC_MAX_BLOCK_AGE_SECONDS);
+  const startingBalance = await ethers.provider.getBalance(keeper.address);
   const policies = configuredPolicies();
   const factory = ZamOpsPoolFactory__factory.connect(factoryAddress, keeper);
   const faucet = ZamOpsPoolFaucet__factory.connect(faucetAddress, keeper);
   const records: RunRecord[] = [];
+  const alerts: KeeperAlert[] = [];
+  const rpc = await inspectRpc(maximumBlockAgeSeconds, alerts);
+  const goldsky = await inspectGoldsky(process.env.KEEPER_GOLDSKY_URL?.trim() || DEFAULT_GOLDSKY_URL, alerts);
+  const faucetSponsorAddress = ethers.getAddress(process.env.KEEPER_FAUCET_SPONSOR_ADDRESS?.trim() || DEFAULT_FAUCET_SPONSOR);
+  const [faucetSponsorAuthorized, faucetSponsorBalance] = await Promise.all([
+    faucet.relayers(faucetSponsorAddress),
+    ethers.provider.getBalance(faucetSponsorAddress),
+  ]);
+  if (!faucetSponsorAuthorized) alerts.push({ kind: "faucet-sponsor", message: `Configured faucet sponsor ${faucetSponsorAddress} is not authorized` });
+  if (faucetSponsorBalance < faucetSponsorMinimumBalance) alerts.push({ kind: "faucet-sponsor", message: `Faucet sponsor balance ${ethers.formatEther(faucetSponsorBalance)} ETH is below the ${ethers.formatEther(faucetSponsorMinimumBalance)} ETH minimum` });
   const poolCount = Number(await factory.poolCount());
 
   for (let index = 0; index < poolCount; index += 1) {
     const poolAddress = await factory.poolAt(index);
+    if (onlyPool && poolAddress.toLowerCase() !== onlyPool.toLowerCase()) continue;
     const pool = ConfidentialPrizePool__factory.connect(poolAddress, keeper);
     const asset = (await pool.asset()).toLowerCase();
     const participants = await pool.participantCount();
@@ -83,10 +137,56 @@ async function main() {
     } catch (cause) {
       records.push({ pool: poolAddress, asset, action: "automation", status: "failed", reason: cause instanceof Error ? cause.message : "unknown failure" });
     }
+
+    if (!dryRun) {
+      const state = Number(await pool.state());
+      const nextDrawAt = Number(await pool.nextDrawAt());
+      const overdueSeconds = Math.floor(Date.now() / 1_000) - nextDrawAt;
+      if (overdueSeconds >= stallThresholdMinutes * 60 && (state !== 0 || participants > 0n)) {
+        alerts.push({
+          kind: "stalled-draw",
+          pool: poolAddress,
+          asset,
+          message: `Draw #${await pool.drawId()} remains in state ${state} ${Math.floor(overdueSeconds / 60)} minutes after eligibility`,
+        });
+      }
+    }
   }
 
-  console.info(JSON.stringify({ status: records.some((record) => record.status === "failed") ? "partial" : "ok", keeper: keeper.address, records }, null, 2));
-  if (records.some((record) => record.status === "failed")) process.exitCode = 1;
+  const endingBalance = await ethers.provider.getBalance(keeper.address);
+  if (endingBalance < minimumBalance) {
+    alerts.push({
+      kind: "low-balance",
+      message: `Keeper balance ${ethers.formatEther(endingBalance)} ETH is below the ${ethers.formatEther(minimumBalance)} ETH minimum`,
+    });
+  }
+  const failed = records.some((record) => record.status === "failed");
+  const report: KeeperReport = {
+    version: 2,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    status: failed ? "failed" : alerts.length > 0 ? "warning" : "ok",
+    network: network.name,
+    chainId: chain.chainId.toString(),
+    dryRun,
+    keeper: {
+      address: keeper.address,
+      startingBalanceWei: startingBalance.toString(),
+      endingBalanceWei: endingBalance.toString(),
+      minimumBalanceWei: minimumBalance.toString(),
+    },
+    monitoring: {
+      stallThresholdMinutes,
+      rpc,
+      goldsky,
+      faucetSponsor: { address: faucetSponsorAddress, authorized: faucetSponsorAuthorized, balanceWei: faucetSponsorBalance.toString(), minimumBalanceWei: faucetSponsorMinimumBalance.toString() },
+      alerts,
+    },
+    records,
+  };
+  await publishReport(report);
+  console.info(JSON.stringify(report, null, 2));
+  if (failed || alerts.length > 0) process.exitCode = 1;
 }
 
 async function fundPrize(
@@ -111,8 +211,9 @@ async function fundPrize(
   const encrypted = await fhevm.createEncryptedInput(poolAddress, keeper.address).add64(confidentialAmount).encrypt();
   const pool = ConfidentialPrizePool__factory.connect(poolAddress, keeper);
   const transaction = await pool.fundPrize(encrypted.handles[0], encrypted.inputProof, { gasLimit: 2_000_000 });
-  await transaction.wait();
-  return { pool: poolAddress, asset: assetAddress, action: `fund ${policy.amount} ${policy.symbol}`, status: "confirmed", hash: transaction.hash };
+  const receipt = await transaction.wait();
+  if (!receipt) throw new Error("prize funding transaction was not mined");
+  return { pool: poolAddress, asset: assetAddress, action: `fund ${policy.amount} ${policy.symbol}`, status: "confirmed", hash: transaction.hash, gasUsed: receipt.gasUsed.toString() };
 }
 
 async function advanceToOpen(
@@ -193,8 +294,9 @@ async function prizeAlreadyPrepared(pool: ReturnType<typeof ConfidentialPrizePoo
 
 async function recordTransaction(pool: string, asset: string, action: string, pending: Promise<ContractTransactionResponse>): Promise<RunRecord> {
   const transaction = await pending;
-  await transaction.wait();
-  return { pool, asset, action, status: "confirmed", hash: transaction.hash };
+  const receipt = await transaction.wait();
+  if (!receipt) throw new Error(`${action} transaction was not mined`);
+  return { pool, asset, action, status: "confirmed", hash: transaction.hash, gasUsed: receipt.gasUsed.toString() };
 }
 
 async function mine(pending: Promise<ContractTransactionResponse>) {
@@ -215,6 +317,72 @@ function configuredPolicies() {
     policies[key] = { ...policies[key], amount };
   }
   return policies;
+}
+
+function positiveInteger(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`Expected a positive integer, received: ${value}`);
+  return parsed;
+}
+
+async function inspectRpc(maximumBlockAgeSeconds: number, alerts: KeeperAlert[]) {
+  const block = await ethers.provider.getBlock("latest");
+  if (!block) throw new Error("Sepolia RPC returned no latest block");
+  const blockAgeSeconds = Math.max(0, Math.floor(Date.now() / 1_000) - block.timestamp);
+  if (blockAgeSeconds > maximumBlockAgeSeconds) alerts.push({ kind: "rpc-stale", message: `Sepolia RPC latest block is ${blockAgeSeconds}s old (maximum ${maximumBlockAgeSeconds}s)` });
+  return { latestBlock: block.number, blockAgeSeconds, maximumBlockAgeSeconds };
+}
+
+async function inspectGoldsky(endpoint: string, alerts: KeeperAlert[]) {
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: "{ _meta { block { number } hasIndexingErrors } }" }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json() as { data?: { _meta?: { block?: { number?: number }; hasIndexingErrors?: boolean } }; errors?: unknown };
+    const meta = payload.data?._meta;
+    if (payload.errors || !meta?.block?.number || meta.hasIndexingErrors) throw new Error(meta?.hasIndexingErrors ? "indexing errors reported" : "invalid metadata response");
+    return { endpoint, indexedBlock: meta.block.number, hasIndexingErrors: Boolean(meta.hasIndexingErrors), healthy: true };
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : "unknown Goldsky failure";
+    alerts.push({ kind: "goldsky-unhealthy", message: `Goldsky health check failed: ${reason}` });
+    return { endpoint, healthy: false };
+  }
+}
+
+async function publishReport(report: KeeperReport) {
+  const reportPath = process.env.KEEPER_REPORT_PATH;
+  if (reportPath) {
+    await mkdir(dirname(reportPath), { recursive: true });
+    await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  }
+
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (!summaryPath) return;
+  const confirmed = report.records.filter((record) => record.status === "confirmed");
+  const gasUsed = confirmed.reduce((total, record) => total + BigInt(record.gasUsed ?? 0), 0n);
+  const lines = [
+    "## Sepolia pool keeper",
+    "",
+    `**Status:** ${report.status}  `,
+    `**Keeper balance:** ${ethers.formatEther(report.keeper.endingBalanceWei)} ETH  `,
+    `**RPC block age:** ${report.monitoring.rpc.blockAgeSeconds}s  `,
+    `**Goldsky:** ${report.monitoring.goldsky.healthy ? `healthy at block ${report.monitoring.goldsky.indexedBlock}` : "unhealthy"}  `,
+    `**Faucet sponsor:** ${report.monitoring.faucetSponsor.authorized ? "authorized" : "unauthorized"}  `,
+    `**Confirmed transactions:** ${confirmed.length}  `,
+    `**Gas used:** ${gasUsed.toString()}  `,
+    `**Pools inspected:** ${new Set(report.records.map((record) => record.pool)).size}`,
+    "",
+  ];
+  if (report.monitoring.alerts.length > 0) {
+    lines.push("### Alerts", "", ...report.monitoring.alerts.map((alert) => `- ${alert.message}`), "");
+  }
+  const failures = report.records.filter((record) => record.status === "failed");
+  if (failures.length > 0) lines.push("### Failures", "", ...failures.map((record) => `- \`${record.pool}\` — ${record.action}: ${record.reason ?? "unknown failure"}`), "");
+  await writeFile(summaryPath, `${lines.join("\n")}\n`, { encoding: "utf8", flag: "a" });
 }
 
 main().catch((cause: unknown) => {

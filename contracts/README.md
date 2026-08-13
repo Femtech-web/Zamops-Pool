@@ -47,22 +47,22 @@ This contract is a completed one-draw technical spike, not the production pool a
 
 ## Production Sepolia deployment
 
-- Factory: `0x9f808ffE49BC790C569845D50be9B132dbdeEe63`
+- Factory: `0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2`
 - Faucet: `0x6148D5A8B6023CC52aC3cc71d22a7340B5b2Cc9F`
 - Registry: `0x2f0750Bbb0A246059d80e94c454586a7F27a128e`
 - Draw interval: 3,600 seconds
 
 | Asset | Pool | Faucet |
 | --- | --- | --- |
-| cUSDCMock | `0x480cAb3845809519FA339Fe279863164E0E75234` | public mint |
-| cUSDTMock | `0xa3C37dE0D122e2a980EBA285164C07CD5c9eC136` | public mint |
-| cWETHMock | `0x28103781578747b32537A00Dc04893cD929933bB` | public mint |
-| cBRONMock | `0x2820521854bA09B510FBe200A5FB9d7CEBC7cF6c` | public mint |
-| cZAMAMock | `0xA138F0aAb2E2d974179d09535BfDF26ca2f14048` | public mint |
-| ctGBPMock | `0x35F64dF757f8E066A867985c15dB9f82f1061FCE` | public mint |
-| cXAUtMock | `0x50Fef562e9b9FC0DeE18162572a49fa95Fc3cD3a` | public mint |
-| ctGBP | `0x661741e7aedcd3c5B2Ab5BCAa5fb6410c05A8c11` | inventory required |
-| csteakcUSDC (Mock) | `0x6a24545b8C0Bb40Dc90cf10f0d2B576B4bA5635E` | inventory required |
+| cUSDCMock | `0x2Eeb28cB5fF0C3339163e3779794ac8a19BCD327` | public mint |
+| cUSDTMock | `0x2411d25929564Dc89502d02d502Be295703DdAf6` | public mint |
+| cWETHMock | `0xd91358f869b26B9Ef61AA7A900111A98109CF41a` | public mint |
+| cBRONMock | `0x95cc93C58F5386f1420F67F2C8ceBd8C05450452` | public mint |
+| cZAMAMock | `0x9820488e1A5c7Dca5D57387c5f5D8ac35f140675` | public mint |
+| ctGBPMock | `0xbbcAc223967DCF3dBfD6fbeC3D47AB98cCDf6bE8` | public mint |
+| cXAUtMock | `0x1858B04892E3017F783dF51C21A191a88A452E05` | public mint |
+| ctGBP | `0x88CDE42A020956167FA2c79Ffa26D7B5918Fb427` | inventory required |
+| csteakcUSDC (Mock) | `0x29c1b12004E649cF67E3a2A37Fc24A91Bd9bf9a1` | inventory required |
 
 Deploy or reconcile the registry dynamically with `npm run deploy:sepolia:pools`. Run the resumable full-cycle cUSDC rehearsal with `npm run rehearse:sepolia:pool`.
 
@@ -73,3 +73,27 @@ The deployed faucet's direct cUSDC path was validated on Sepolia with an exact 1
 The cUSDC pool completed the full three-wallet journey with encrypted 10/30/60 cUSDC principal, aggregate disclosure of 100 cUSDC, a separately funded 50 cUSDC prize, first-attempt FHE-weighted selection, winner-only EIP-712 decryption, confidential claim, and full principal withdrawal. Final privately decrypted pool principals were zero for all three wallets. Detailed hashes, gas, HCU, depth, and latency are retained in `private-notes/08-testing-and-release.md` during development.
 
 HCU means **homomorphic complexity units**: the FHE work of encrypted operations, separate from EVM gas. The scripts measure confirmation latency around transaction submission/receipt, decryption latency around SDK calls, gas from `receipt.gasUsed`, and HCU/dependency depth from FHE operation logs.
+
+### Canonical Phase 3 release journey — 2026-08-13
+
+Factory `0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2` and cUSDC pool `0x2Eeb28cB5fF0C3339163e3779794ac8a19BCD327` completed the fresh 10/30/60 journey. The keeper funded and completed draw #3, wallet three claimed exactly 50 cUSDC, all principals were withdrawn, and final principal decryptions were zero. Goldsky restored and user-decrypted the exact three deposits, three withdrawals, positive claim and subsequent zero-value diagnostic claim. Run `npm run phase3:prepare:cusdc`, `npm run phase3:finalize:cusdc`, `npm run phase3:verify-indexed:cusdc` and `npm run phase3:verify-indexed-final:cusdc` for the guarded evidence workflow.
+
+## Keeper operations and reports
+
+`npm run keeper:sepolia` inspects every pool in the canonical factory and advances only eligible, non-empty draws. All transition methods are permissionless; the configured wallet provides timing and gas but has no winner-selection authority.
+
+The production workflow runs every ten minutes against a one-hour draw interval, so a healthy draw usually completes approximately 60–70 minutes after the pool reopens. GitHub schedules can be delayed. The frontend therefore exposes **Help advance draw** 20 minutes after eligibility, allowing any saver to submit the same next state-machine step.
+
+Set `KEEPER_REPORT_PATH=reports/pool-keeper.json` to retain a structured report. In GitHub Actions, each run also writes a step summary and uploads that JSON for 30 days. The report records confirmed/skipped/failed actions, transaction hashes, actual gas, keeper balances, RPC block freshness, Goldsky indexing health, faucet-sponsor authorization/balance, and alerts. `KEEPER_MIN_BALANCE_ETH` and `KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH` default to `0.02`; `KEEPER_RPC_MAX_BLOCK_AGE_SECONDS` defaults to `180`; `KEEPER_STALL_THRESHOLD_MINUTES` defaults to `20`. A failed action, low monitored balance, stale RPC, unhealthy indexer, or stalled draw makes the run fail visibly.
+
+For an explicit single-pool rehearsal, set `KEEPER_POOL_ADDRESS`. Scheduled production runs leave it unset and inspect the entire canonical factory.
+
+Recovery order:
+
+1. Inspect the failed run summary and JSON artifact.
+2. Top up the keeper if the low-balance alert fired, then manually dispatch the workflow.
+3. If automation remains unavailable, run the keeper with another funded Sepolia key or use the delayed in-app fallback until the pool reopens.
+
+For a deliberately manual recovery, `npm run fallback:sepolia` submits exactly one next step and exits. It defaults to signer index `1` and the canonical cUSDC pool; override `FALLBACK_SIGNER_INDEX` or `FALLBACK_POOL_ADDRESS` when rehearsing another caller or pool. Re-run it only when another single step is intentionally required.
+
+Never expose `KEEPER_PRIVATE_KEY` to the frontend or grant the keeper privileged contract roles.

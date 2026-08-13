@@ -21,6 +21,13 @@ jobs:
       KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
       KEEPER_PRIZE_CONFIG_JSON: ${{ vars.KEEPER_PRIZE_CONFIG_JSON }}
       KEEPER_FUNDING_ENABLED: "true"
+      KEEPER_MIN_BALANCE_ETH: ${{ vars.KEEPER_MIN_BALANCE_ETH || '0.02' }}
+      KEEPER_STALL_THRESHOLD_MINUTES: ${{ vars.KEEPER_STALL_THRESHOLD_MINUTES || '20' }}
+      KEEPER_RPC_MAX_BLOCK_AGE_SECONDS: ${{ vars.KEEPER_RPC_MAX_BLOCK_AGE_SECONDS || '180' }}
+      KEEPER_GOLDSKY_URL: ${{ vars.NEXT_PUBLIC_ZAMOPS_POOL_SUBGRAPH_URL }}
+      KEEPER_FAUCET_SPONSOR_ADDRESS: ${{ vars.KEEPER_FAUCET_SPONSOR_ADDRESS || '0xd04BBA49865f57840D4F03CCf541961906843AF1' }}
+      KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH: ${{ vars.KEEPER_FAUCET_SPONSOR_MIN_BALANCE_ETH || '0.02' }}
+      KEEPER_REPORT_PATH: reports/pool-keeper.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,3 +37,11 @@ jobs:
           cache-dependency-path: contracts/package-lock.json
       - run: npm ci
       - run: npm run keeper:sepolia
+      - name: Upload keeper report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pool-keeper-${{ github.run_id }}
+          path: contracts/reports/pool-keeper.json
+          if-no-files-found: warn
+          retention-days: 30

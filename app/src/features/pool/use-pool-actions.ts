@@ -36,8 +36,8 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     return hash;
   }
 
-  async function run(action: () => Promise<unknown>) {
-    try { await action(); return true; }
+  async function run<T>(action: () => Promise<T>) {
+    try { return await action() !== false; }
     catch (cause) {
       activity.fail();
       activity.notifyError(toUserFacingError(cause, t));
@@ -98,8 +98,18 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
 
   const withdraw = (amount: string) => run(async () => {
     requireWallet(address);
+    const value = parseAmount(amount);
+    const principal = revealed.principal ?? (await decryptBalances(false)).principal;
+    if (principal === BigInt(0)) {
+      activity.notifyInfo(t("pool.noPrincipalTitle"), t("pool.noPrincipalInfo"));
+      return false;
+    }
+    if (value > principal) {
+      activity.notifyInfo(t("pool.withdrawTooHighTitle"), t("pool.withdrawTooHighInfo"));
+      return false;
+    }
     activity.begin({ title: t("operation.withdrawTitle"), detail: t("operation.withdrawEncrypt"), step: 1, totalSteps: 2 });
-    const encrypted = await sdk.encrypt({ values: [{ value: parseAmount(amount), type: "euint64" }], contractAddress: asset.poolAddress, userAddress: address });
+    const encrypted = await sdk.encrypt({ values: [{ value, type: "euint64" }], contractAddress: asset.poolAddress, userAddress: address });
     activity.progress(t("operation.confirming"), 2);
     const hash = await transact({ address: asset.poolAddress, abi: poolAbi, functionName: "withdraw", args: [encrypted.encryptedValues[0], encrypted.inputProof], gas: BigInt(2_500_000), chainId: SEPOLIA_CHAIN_ID });
     const encryptedAmountHandle = await activityAmountHandle(hash, "EncryptedWithdrawal");
@@ -109,7 +119,7 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     return hash;
   });
 
-  const reveal = () => run(async () => {
+  async function decryptBalances(showConfirmation: boolean): Promise<RevealedBalances & { principal: bigint; winnings: bigint }> {
     if (!poolState) throw new Error("Pool state unavailable");
     activity.begin({ title: t("operation.revealTitle"), detail: t("operation.revealSign"), step: 1, totalSteps: 2 });
     await grantPermit.mutateAsync([asset.poolAddress]);
@@ -119,14 +129,33 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     const principal = result[handles[0]];
     const winnings = result[handles[1]];
     if (principal === undefined || winnings === undefined) throw new Error("Private values unavailable");
-    setRevealed({ principal: BigInt(principal), winnings: BigInt(winnings) });
+    const balances = { principal: BigInt(principal), winnings: BigInt(winnings) };
+    setRevealed(balances);
     activity.fail();
-    activity.notifySuccess(t("success.revealTitle"), t("success.revealDetail"));
-  });
+    if (showConfirmation) activity.notifySuccess(t("success.revealTitle"), t("success.revealDetail"));
+    return balances;
+  }
+
+  const reveal = () => run(async () => { await decryptBalances(true); });
+
+  async function prepareWithdraw() {
+    return run(async () => {
+      const principal = revealed.principal ?? (await decryptBalances(false)).principal;
+      if (principal === BigInt(0)) {
+        activity.notifyInfo(t("pool.noPrincipalTitle"), t("pool.noPrincipalInfo"));
+        return false;
+      }
+    });
+  }
 
   const hide = () => setRevealed({});
 
   const claim = () => run(async () => {
+    const winnings = revealed.winnings ?? (await decryptBalances(false)).winnings;
+    if (winnings === BigInt(0)) {
+      activity.notifyInfo(t("pool.noWinningsTitle"), t("pool.noWinningsInfo"));
+      return false;
+    }
     activity.begin({ title: t("operation.claimTitle"), detail: t("operation.walletConfirm"), step: 1, totalSteps: 1 });
     const hash = await transact({ address: asset.poolAddress, abi: poolAbi, functionName: "claim", chainId: SEPOLIA_CHAIN_ID });
     const encryptedAmountHandle = await activityAmountHandle(hash, "EncryptedPrizeClaimed");
@@ -151,7 +180,7 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     activity.complete({ kind: "draw", title: t("success.drawTitle"), detail: t("success.drawDetail"), txHash: hash, contractAddress: asset.poolAddress, assetSymbol: asset.symbol, assetIcon: asset.icon });
   });
 
-  return { getTokens, wrap, deposit, withdraw, reveal, hide, claim, advanceDraw, revealed, isPending: Boolean(activity.pending) };
+  return { getTokens, wrap, deposit, withdraw, prepareWithdraw, reveal, hide, claim, advanceDraw, revealed, isPending: Boolean(activity.pending) };
 
   async function activityAmountHandle(hash: Hex, eventName: "EncryptedDeposit" | "EncryptedWithdrawal" | "EncryptedPrizeClaimed") {
     if (!publicClient) return undefined;

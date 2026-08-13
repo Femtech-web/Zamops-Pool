@@ -8,6 +8,7 @@ build
 coverage
 playwright-report
 test-results
+reports
 out
 cache
 artifacts
@@ -18,4 +19,3 @@ typechain-types
 .DS_Store
 
 /private-notes
-

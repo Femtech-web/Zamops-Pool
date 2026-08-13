@@ -16,8 +16,14 @@
     "rehearse:sepolia:pool": "hardhat run scripts/rehearse-production-pool-sepolia.ts --network sepolia",
     "rehearse:sepolia:fresh-wallet": "hardhat run scripts/rehearse-fresh-wallet-sepolia.ts --network sepolia",
     "keeper:sepolia": "hardhat run scripts/run-pool-keeper-sepolia.ts --network sepolia",
+    "fallback:sepolia": "hardhat run scripts/advance-pool-draw-step-sepolia.ts --network sepolia",
+    "phase3:prepare:cusdc": "hardhat run scripts/phase3-prepare-cusdc-sepolia.ts --network sepolia",
+    "phase3:verify-indexed:cusdc": "hardhat run scripts/phase3-verify-indexed-cusdc-sepolia.ts --network sepolia",
+    "phase3:finalize:cusdc": "hardhat run scripts/phase3-finalize-cusdc-sepolia.ts --network sepolia",
+    "phase3:verify-indexed-final:cusdc": "hardhat run scripts/phase3-verify-indexed-final-cusdc-sepolia.ts --network sepolia",
     "prepare:sepolia:cusdc": "hardhat run scripts/prepare-cusdc-pool-sepolia.ts --network sepolia",
-    "verify:sepolia": "hardhat etherscan-verify --network sepolia"
+    "verify:sepolia": "hardhat etherscan-verify --network sepolia",
+    "verify:canonical:sepolia": "hardhat run scripts/verify-canonical-sepolia.ts --network sepolia"
   },
   "dependencies": {
     "@fhevm/solidity": "0.11.1",

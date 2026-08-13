@@ -24,11 +24,13 @@ export type ActivityItem = {
 type PendingOperation = { title: string; detail: string; step: number; totalSteps: number };
 type ErrorToast = { id: string; message: string };
 type SuccessToast = { id: string; title: string; message: string };
+type InfoToast = { id: string; title: string; message: string };
 type ActivityContextValue = {
   activities: ActivityItem[];
   pending: PendingOperation | null;
   success: ActivityItem | null;
   successToast: SuccessToast | null;
+  infoToast: InfoToast | null;
   errorToast: ErrorToast | null;
   begin: (operation: PendingOperation) => void;
   progress: (detail: string, step?: number) => void;
@@ -36,8 +38,10 @@ type ActivityContextValue = {
   fail: () => void;
   notifyError: (message: string) => void;
   notifySuccess: (title: string, message: string) => void;
+  notifyInfo: (title: string, message: string) => void;
   dismissError: () => void;
   dismissSuccessToast: () => void;
+  dismissInfoToast: () => void;
   dismissSuccess: () => void;
 };
 
@@ -53,6 +57,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
   const [success, setSuccess] = useState<ActivityItem | null>(null);
   const [errorToast, setErrorToast] = useState<ErrorToast | null>(null);
   const [successToast, setSuccessToast] = useState<SuccessToast | null>(null);
+  const [infoToast, setInfoToast] = useState<InfoToast | null>(null);
 
   useEffect(() => {
     if (!errorToast) return;
@@ -65,6 +70,12 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => setSuccessToast(null), 4_500);
     return () => window.clearTimeout(timer);
   }, [successToast]);
+
+  useEffect(() => {
+    if (!infoToast) return;
+    const timer = window.setTimeout(() => setInfoToast(null), 5_500);
+    return () => window.clearTimeout(timer);
+  }, [infoToast]);
 
   useEffect(() => {
     try {
@@ -99,6 +110,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     pending,
     success,
     successToast,
+    infoToast,
     errorToast,
     begin: setPending,
     progress: (detail, step) => setPending((current) => current ? { ...current, detail, step: step ?? current.step } : current),
@@ -112,10 +124,12 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     fail: () => setPending(null),
     notifyError: (message) => setErrorToast({ id: crypto.randomUUID(), message }),
     notifySuccess: (title, message) => setSuccessToast({ id: crypto.randomUUID(), title, message }),
+    notifyInfo: (title, message) => setInfoToast({ id: crypto.randomUUID(), title, message }),
     dismissError: () => setErrorToast(null),
     dismissSuccessToast: () => setSuccessToast(null),
+    dismissInfoToast: () => setInfoToast(null),
     dismissSuccess: () => setSuccess(null),
-  }), [activities, address, errorToast, localActivities, pending, persist, success, successToast]);
+  }), [activities, address, errorToast, infoToast, localActivities, pending, persist, success, successToast]);
 
   return <ActivityContext.Provider value={value}>{children}</ActivityContext.Provider>;
 }

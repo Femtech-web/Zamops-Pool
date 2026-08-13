@@ -1,17 +1,21 @@
 "use client";
 
-import { ArrowDownToLine, ArrowRight, Check, ExternalLink, X } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, Check, ExternalLink, Info, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRef } from "react";
 
 import { useActivity } from "@/features/activity/activity-provider";
 import { useI18n } from "@/i18n/i18n-provider";
+import { useDialogA11y } from "@/shared/hooks/use-dialog-a11y";
 
 const EXPLORER = "https://sepolia.etherscan.io/tx/";
 
 export function OperationFeedback() {
-  const { pending, success, successToast, errorToast, dismissError, dismissSuccess, dismissSuccessToast } = useActivity();
+  const { pending, success, successToast, infoToast, errorToast, dismissError, dismissInfoToast, dismissSuccess, dismissSuccessToast } = useActivity();
   const { t } = useI18n();
+  const successDialogRef = useRef<HTMLElement>(null);
+  useDialogA11y(successDialogRef, Boolean(success), dismissSuccess);
   return <>
     {pending ? <aside className="operation-pending" role="status" aria-live="polite">
       <span className="operation-spinner" aria-hidden="true" />
@@ -27,8 +31,13 @@ export function OperationFeedback() {
       <div><strong>{successToast.title}</strong><p>{successToast.message}</p></div>
       <button type="button" onClick={dismissSuccessToast} aria-label={t("common.close")}><X size={14} /></button>
     </aside> : null}
+    {infoToast ? <aside className="info-toast" role="status" aria-live="polite">
+      <span aria-hidden="true"><Info size={13} strokeWidth={2.3} /></span>
+      <div><strong>{infoToast.title}</strong><p>{infoToast.message}</p></div>
+      <button type="button" onClick={dismissInfoToast} aria-label={t("common.close")}><X size={14} /></button>
+    </aside> : null}
     {success ? <div className="success-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && dismissSuccess()}>
-      <section className="success-dialog" role="dialog" aria-modal="true" aria-labelledby="success-title">
+      <section ref={successDialogRef} className="success-dialog" role="dialog" aria-modal="true" aria-labelledby="success-title">
         <button className="dialog-close" type="button" onClick={dismissSuccess} aria-label={t("common.close")}><X size={16} /></button>
         <span className="success-mark" aria-hidden="true">✓</span>
         <p className="eyebrow">{t("success.kicker")}</p>

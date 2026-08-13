@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <mask id="amount">
+    <rect width="64" height="64" fill="#fff"/>
+    <path d="M15 34H41M15 46H31" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+  </mask>
+  <path d="M16 4H40L60 24V48A12 12 0 0 1 48 60H16A12 12 0 0 1 4 48V16A12 12 0 0 1 16 4Z" fill="#fbfaf6" mask="url(#amount)"/>
+  <path d="M43 9L57 23" stroke="#f8df75" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

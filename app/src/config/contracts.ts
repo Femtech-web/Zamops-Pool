@@ -15,7 +15,7 @@ export const WRAPPERS_REGISTRY_ADDRESS = environmentAddress(
 );
 export const POOL_FACTORY_ADDRESS = environmentAddress(
   "NEXT_PUBLIC_POOL_FACTORY_ADDRESS",
-  "0x9f808ffE49BC790C569845D50be9B132dbdeEe63",
+  "0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2",
 );
 export const POOL_FAUCET_ADDRESS = environmentAddress(
   "NEXT_PUBLIC_POOL_FAUCET_ADDRESS",

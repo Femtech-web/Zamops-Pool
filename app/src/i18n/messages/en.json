@@ -40,8 +40,6 @@
   "pool.timeline.claim": "Claim or withdraw",
   "pool.timeline.claimText": "Claim winnings privately or withdraw principal anytime.",
   "pool.privacyTitle": "What the chain can see",
-  "pool.privacyBody": "Wallet participation and transaction timing are public. Deposit amounts, balances, odds, random selection, and winnings remain encrypted.",
-  "pool.learn": "Read the privacy design",
   "status.foundation": "Product foundation",
   "landing.navHow": "How it works",
   "landing.navPrivacy": "Privacy",
@@ -81,7 +79,7 @@
   "common.close": "Close",
   "common.done": "Done",
   "success.kicker": "Complete",
-  "activity.kicker": "Your wallet",
+  "activity.kicker": "Onchain history",
   "activity.title": "Recent activity",
   "activity.empty": "Your completed pool actions will appear here.",
   "activity.viewAll": "View all activity",
@@ -105,7 +103,6 @@
   "activity.revealAmount": "Reveal amount",
   "activity.hideAmount": "Hide amount",
   "activity.revealing": "Revealing…",
-  "activity.privacyNote": "Private amounts stay encrypted. Activity records keep proof of the action, not a readable copy of its value.",
   "activity.kind.tokens": "Test token claim",
   "activity.kind.wrap": "Shielded",
   "activity.kind.unwrap": "Unshielded",
@@ -139,11 +136,15 @@
   "pool.makePrivate": "Shield",
   "pool.privateBalances": "Private balances",
   "pool.balancesHidden": "Principal and winnings are hidden.",
-  "pool.balancesVisible": "Visible only in this browser session.",
+  "pool.balancesVisible": "Revealed only to you.",
   "pool.revealBalances": "Reveal balances",
   "pool.hide": "Hide balances",
-  "pool.noWinnings": "No prize to claim yet.",
-  "pool.revealToCheck": "Reveal balances to check.",
+  "pool.noWinningsTitle": "Nothing to claim",
+  "pool.noWinningsInfo": "Your prize balance is 0. No transaction was submitted.",
+  "pool.noPrincipalTitle": "Nothing to withdraw",
+  "pool.noPrincipalInfo": "Your principal balance is 0. No transaction was submitted.",
+  "pool.withdrawTooHighTitle": "Amount exceeds your principal",
+  "pool.withdrawTooHighInfo": "Enter an amount no greater than your revealed principal balance.",
   "pool.claim": "Claim prize",
   "pool.depositsPaused": "Deposits resume after the draw",
   "action.amount": "Amount",
@@ -218,7 +219,16 @@
   "draw.stageSelect": "Checking encrypted entries in a small batch…",
   "draw.stageResult": "Verifying that the private selection succeeded…",
   "draw.stageSync": "Preparing private balances for the next draw…"
-  ,"tokens.kicker": "Registry tokens"
+  ,"draw.automationScheduled": "Scheduled automatically"
+  ,"draw.automationTiming": "The keeper checks every ten minutes. This draw usually completes 60–70 minutes after the pool reopens."
+  ,"draw.automationWaitingSaver": "Waiting for the first saver"
+  ,"draw.automationWaitingSaverDetail": "Automation skips empty pools and starts after someone joins."
+  ,"draw.automationWorking": "Automation is completing this draw"
+  ,"draw.fallbackUnlocks": "Permissionless help unlocks in"
+  ,"draw.fallbackReady": "Automation appears delayed"
+  ,"draw.fallbackReadyDetail": "Any saver can submit the next permissionless draw step."
+  ,"draw.helpAdvance": "Help advance draw"
+  ,"tokens.kicker": "Confidential assets"
   ,"tokens.title": "Your tokens"
   ,"tokens.description": "Get Sepolia test tokens, move them between public and confidential form, and reveal private balances only when you choose."
   ,"tokens.loading": "Loading registry tokens…"
@@ -228,6 +238,10 @@
   ,"tokens.privateBalance": "Private balance"
   ,"tokens.reveal": "Reveal"
   ,"tokens.hide": "Hide"
+  ,"tokens.revealAll": "Reveal all balances"
+  ,"tokens.hideAll": "Hide all balances"
+  ,"tokens.allBalancesRevealed": "Private balances revealed"
+  ,"tokens.allBalancesRevealedBody": "Only this connected wallet received the decrypted values."
   ,"tokens.makePrivate": "Shield"
   ,"tokens.makePublic": "Unshield"
   ,"tokens.wrapBody": "Convert public test tokens into their confidential ERC-7984 form."
@@ -241,6 +255,5 @@
   ,"tokens.unwrapSuccessBody": "Your confidential tokens were converted back to the public ERC-20."
   ,"tokens.resume": "Resume conversion"
   ,"tokens.resumeTitle": "Resuming conversion"
-  ,"tokens.note": "Pool savings remain separate from this token wallet. Withdrawing principal returns tokens here in confidential form."
   ,"tokens.connectBody": "Connect your wallet to manage public and confidential registry tokens."
 }

@@ -1,6 +1,6 @@
 import { FhevmType } from "@fhevm/hardhat-plugin";
 import type { Signer, TransactionResponse } from "ethers";
-import { deployments, ethers, fhevm, network } from "hardhat";
+import { ethers, fhevm, network } from "hardhat";
 
 import {
   ConfidentialPrizePool__factory,
@@ -11,30 +11,35 @@ import {
 } from "../typechain-types";
 
 const ASSET = "0x4e7b06d78965594eb5ef5414c357ca21e1554491"; // cUSDT: untouched pool for a deterministic one-participant draw.
+const FACTORY = "0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2";
+const FAUCET = "0x6148D5A8B6023CC52aC3cc71d22a7340B5b2Cc9F";
 const DEPOSIT = 10_000_000n;
 const PRIZE = 5_000_000n;
 const MAX_EXPIRY = 281_474_976_710_655n;
+const FRESH_WALLET_GAS = "0.025";
 
 type RecordItem = { label: string; hash?: string; seconds: number; gasUsed?: string };
 
 async function main() {
   if (network.name !== "sepolia") throw new Error("Fresh-wallet rehearsal is Sepolia-only");
   await fhevm.initializeCLIApi();
-  const [owner, relayer, prizeFunder] = await ethers.getSigners();
+  const keys = (process.env.SEPOLIA_PRIVATE_KEYS ?? "").split(",").map((key) => key.trim()).filter(Boolean);
+  if (!keys[0]) throw new Error("SEPOLIA_PRIVATE_KEYS must contain a funded gas sponsor");
+  const owner = new ethers.Wallet(keys[0], ethers.provider);
   const fresh = ethers.Wallet.createRandom().connect(ethers.provider);
   const records: RecordItem[] = [];
-  const factoryAddress = (await deployments.get("ZamOpsPoolFactory")).address;
-  const faucetAddress = (await deployments.get("ZamOpsPoolFaucet")).address;
+  const factoryAddress = process.env.KEEPER_FACTORY_ADDRESS ?? FACTORY;
+  const faucetAddress = process.env.KEEPER_FAUCET_ADDRESS ?? FAUCET;
   const factory = ZamOpsPoolFactory__factory.connect(factoryAddress, owner);
   const poolAddress = await factory.poolByAsset(ASSET);
   const pool = ConfidentialPrizePool__factory.connect(poolAddress, owner);
   const wrapper = IConfidentialTokenWrapper__factory.connect(ASSET, owner);
   const underlyingAddress = await wrapper.underlying();
   const underlying = IERC20Metadata__factory.connect(underlyingAddress, fresh);
-  const faucet = ZamOpsPoolFaucet__factory.connect(faucetAddress, relayer);
+  const faucet = ZamOpsPoolFaucet__factory.connect(faucetAddress, fresh);
 
-  await mine("fund one-use wallet gas", owner.sendTransaction({ to: fresh.address, value: ethers.parseEther("0.08") }), records);
-  await mine("gasless faucet claim", faucet.claimFor(fresh.address, underlyingAddress), records);
+  await mine("fund one-use wallet gas", owner.sendTransaction({ to: fresh.address, value: ethers.parseEther(FRESH_WALLET_GAS) }), records);
+  await mine("fresh-wallet faucet claim", faucet.claim(underlyingAddress), records);
   const publicAmount = (DEPOSIT + PRIZE) * (await wrapper.rate());
   await mine("approve wrapper", underlying.approve(ASSET, publicAmount), records);
   await mine("make cUSDT private", wrapper.connect(fresh).wrap(fresh.address, publicAmount), records);

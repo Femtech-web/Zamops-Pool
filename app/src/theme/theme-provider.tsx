@@ -15,19 +15,23 @@ const STORAGE_KEY = "zamops-pool-theme-v2";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (saved !== "dark" && saved !== "light") return;
-    const restoreTheme = window.setTimeout(() => setTheme(saved), 0);
+    const initialTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const restoreTheme = window.setTimeout(() => {
+      setTheme(initialTheme);
+      setMounted(true);
+    }, 0);
     return () => window.clearTimeout(restoreTheme);
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
     window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+  }, [mounted, theme]);
 
   const value = useMemo<ThemeContextValue>(
     () => ({

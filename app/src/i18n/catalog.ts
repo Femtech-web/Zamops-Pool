@@ -7,6 +7,6 @@ import zh from "./messages/zh.json";
 import type { LocaleCode } from "./locales";
 
 export type MessageKey = keyof typeof en;
-export type MessageCatalog = Partial<Record<MessageKey, string>>;
+export type MessageCatalog = Record<MessageKey, string>;
 
 export const catalogs: Record<LocaleCode, MessageCatalog> = { en, fr, zh, es, ko, vi };

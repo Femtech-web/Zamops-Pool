@@ -1,7 +1,9 @@
 .tokens-page { width: min(1040px, 100%); margin: clamp(78px, 11vh, 120px) auto 0; }
-.tokens-heading { max-width: 650px; }
+.tokens-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
+.tokens-heading > div { max-width: 650px; }
 .tokens-heading h1 { margin: 13px 0 0; font: 500 clamp(48px, 6vw, 72px)/.96 "Instrument Sans Variable", sans-serif; letter-spacing: -.06em; }
-.tokens-heading > p:last-child { margin: 22px 0 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.tokens-heading > div > p:last-child { margin: 22px 0 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.tokens-heading > button { display: inline-flex; min-height: 38px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); font-size: 9px; font-weight: 690; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
 .tokens-list { margin-top: 48px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .token-row { position: relative; display: grid; min-height: 118px; padding: 20px; grid-template-columns: minmax(220px, 1.2fr) minmax(140px, .7fr) minmax(190px, .9fr) auto; align-items: center; gap: 22px; }
 .token-row + .token-row { border-top: 1px solid var(--line); }
@@ -20,6 +22,5 @@
 .token-row-actions { display: grid; gap: 7px; }
 .token-row-actions button { min-height: 34px; padding: 0 11px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); font-size: 8px; font-weight: 690; white-space: nowrap; }
 .token-row-actions button.resume { display: inline-flex; color: var(--signal); align-items: center; justify-content: center; gap: 5px; }
-.tokens-note { max-width: 700px; margin: 20px 0 0; color: var(--faint); font-size: 9px; line-height: 1.65; }
 @media (max-width: 880px) { .token-row { grid-template-columns: 1fr 1fr; } .token-row-actions { grid-column: 1 / -1; grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 580px) { .tokens-page { margin-top: 58px; } .token-row { grid-template-columns: 1fr; gap: 20px; } .token-row-actions { grid-column: auto; } .tokens-heading > p:last-child { font-size: 13px; } }
+@media (max-width: 580px) { .tokens-page { margin-top: 58px; } .tokens-heading { align-items: flex-start; flex-direction: column; } .tokens-heading > div > p:last-child { font-size: 13px; } .token-row { grid-template-columns: 1fr; gap: 20px; } .token-row-actions { grid-column: auto; } }
