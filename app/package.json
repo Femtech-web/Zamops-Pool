@@ -1,0 +1,39 @@
+{
+  "name": "@zamops/pool-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/instrument-sans": "^5.2.8",
+    "@fontsource-variable/manrope": "^5.2.8",
+    "@rainbow-me/rainbowkit": "^2.2.9",
+    "@tanstack/react-query": "^5.101.4",
+    "@x402/core": "^2.22.0",
+    "@x402/evm": "^2.22.0",
+    "@x402/extensions": "^2.22.0",
+    "@x402/svm": "^2.22.0",
+    "@zama-fhe/react-sdk": "^3.4.0",
+    "@zama-fhe/sdk": "^3.4.0",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.38.5",
+    "wagmi": "^2.19.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^16.0.1",
+    "typescript": "^5.7.2"
+  }
+}

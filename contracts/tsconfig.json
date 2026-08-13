@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "commonjs",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node", "mocha"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "dist"
+  },
+  "include": ["./hardhat.config.ts", "./deploy", "./scripts", "./test", "./tasks"]
+}

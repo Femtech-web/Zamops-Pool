@@ -1,0 +1,32 @@
+name: Pool keeper
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: zamops-pool-sepolia-keeper
+  cancel-in-progress: false
+
+jobs:
+  advance-pools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: contracts
+    env:
+      SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+      KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
+      KEEPER_PRIZE_CONFIG_JSON: ${{ vars.KEEPER_PRIZE_CONFIG_JSON }}
+      KEEPER_FUNDING_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - run: npm ci
+      - run: npm run keeper:sepolia

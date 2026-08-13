@@ -1,0 +1,11 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "confidentialToken", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "pool", "type": "address" }
+    ],
+    "name": "PoolCreated",
+    "type": "event"
+  }
+]

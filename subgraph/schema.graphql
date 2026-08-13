@@ -1,0 +1,55 @@
+type Pool @entity(immutable: true) {
+  id: ID!
+  chainId: Int!
+  factory: Bytes!
+  asset: Bytes!
+  pool: Bytes!
+  transactionHash: Bytes!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type PoolStatus @entity(immutable: false) {
+  id: ID!
+  chainId: Int!
+  pool: Bytes!
+  asset: Bytes!
+  phase: PoolPhase!
+  currentPrizeFunded: Boolean!
+  nextPrizeFunded: Boolean!
+  drawHadFundedPrize: Boolean!
+  drawId: BigInt!
+  revealedTotalWeight: BigInt
+  updatedAt: BigInt!
+}
+
+enum PoolPhase {
+  OPEN
+  DRAWING
+  SYNCING
+}
+
+type PoolActivity @entity(immutable: true) {
+  id: ID!
+  chainId: Int!
+  pool: Bytes!
+  asset: Bytes!
+  account: Bytes
+  type: PoolActivityType!
+  encryptedAmount: Bytes
+  drawId: BigInt
+  transactionHash: Bytes!
+  logIndex: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+enum PoolActivityType {
+  DEPOSIT
+  WITHDRAWAL
+  PRIZE_FUNDED
+  PRIZE_CLAIMED
+  DRAW_COMPLETED
+  DRAW_CANCELLED_EMPTY
+  POOL_REOPENED
+}

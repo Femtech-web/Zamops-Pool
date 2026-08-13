@@ -1,0 +1,63 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: ZamOpsPoolFactory
+    network: sepolia
+    source:
+      address: "0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2"
+      abi: ZamOpsPoolFactory
+      startBlock: 11477441
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Pool
+        - PoolStatus
+      abis:
+        - name: ZamOpsPoolFactory
+          file: ./abis/ZamOpsPoolFactory.json
+      eventHandlers:
+        - event: PoolCreated(indexed address,indexed address)
+          handler: handlePoolCreated
+      file: ./src/factory-mapping.ts
+templates:
+  - kind: ethereum/contract
+    name: ConfidentialPrizePool
+    network: sepolia
+    source:
+      abi: ConfidentialPrizePool
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoolActivity
+        - PoolStatus
+      abis:
+        - name: ConfidentialPrizePool
+          file: ./abis/ConfidentialPrizePool.json
+      eventHandlers:
+        - event: EncryptedDeposit(indexed address,indexed bytes32)
+          handler: handleEncryptedDeposit
+        - event: EncryptedWithdrawal(indexed address,indexed bytes32)
+          handler: handleEncryptedWithdrawal
+        - event: EncryptedPrizeFunded(indexed address,indexed bytes32)
+          handler: handleEncryptedPrizeFunded
+        - event: EncryptedPrizeClaimed(indexed address,indexed bytes32)
+          handler: handleEncryptedPrizeClaimed
+        - event: DrawCompleted(indexed uint64)
+          handler: handleDrawCompleted
+        - event: DrawCancelledEmpty(indexed uint64)
+          handler: handleDrawCancelledEmpty
+        - event: TotalDecryptionRequested(indexed uint64,indexed bytes32)
+          handler: handleTotalDecryptionRequested
+        - event: SelectionStarted(indexed uint64,uint64,uint64,uint32)
+          handler: handleSelectionStarted
+        - event: PoolReopened(indexed uint64,uint64)
+          handler: handlePoolReopened
+      file: ./src/pool-mapping.ts

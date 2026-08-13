@@ -1,0 +1,9 @@
+.env
+node_modules
+artifacts
+cache
+coverage
+deployments
+typechain-types
+fhevmTemp
+

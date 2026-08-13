@@ -1,0 +1,14 @@
+{
+  "name": "@zamops/pool-subgraph",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "codegen": "graph codegen subgraph.yaml",
+    "build": "graph codegen subgraph.yaml && graph build subgraph.yaml",
+    "deploy:sepolia": "goldsky subgraph deploy zamops-pool-sepolia/v0.0.3 --path build"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.97.0",
+    "@graphprotocol/graph-ts": "^0.36.0"
+  }
+}

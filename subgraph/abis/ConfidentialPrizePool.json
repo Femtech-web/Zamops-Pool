@@ -1,0 +1,12 @@
+[
+  { "inputs": [], "name": "state", "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }], "stateMutability": "view", "type": "function" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "participant", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "encryptedAmount", "type": "bytes32" }], "name": "EncryptedDeposit", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "participant", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "encryptedAmount", "type": "bytes32" }], "name": "EncryptedWithdrawal", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "funder", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "encryptedAmount", "type": "bytes32" }], "name": "EncryptedPrizeFunded", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "address", "name": "participant", "type": "address" }, { "indexed": true, "internalType": "bytes32", "name": "encryptedAmount", "type": "bytes32" }], "name": "EncryptedPrizeClaimed", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint64", "name": "drawId", "type": "uint64" }], "name": "DrawCompleted", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint64", "name": "drawId", "type": "uint64" }], "name": "DrawCancelledEmpty", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint64", "name": "drawId", "type": "uint64" }, { "indexed": true, "internalType": "bytes32", "name": "encryptedTotalWeight", "type": "bytes32" }], "name": "TotalDecryptionRequested", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint64", "name": "drawId", "type": "uint64" }, { "indexed": false, "internalType": "uint64", "name": "revealedTotalWeight", "type": "uint64" }, { "indexed": false, "internalType": "uint64", "name": "randomUpperBound", "type": "uint64" }, { "indexed": false, "internalType": "uint32", "name": "retryCount", "type": "uint32" }], "name": "SelectionStarted", "type": "event" },
+  { "anonymous": false, "inputs": [{ "indexed": true, "internalType": "uint64", "name": "drawId", "type": "uint64" }, { "indexed": false, "internalType": "uint64", "name": "nextDrawAt", "type": "uint64" }], "name": "PoolReopened", "type": "event" }
+]

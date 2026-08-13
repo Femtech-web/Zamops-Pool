@@ -1,0 +1,47 @@
+{
+  "name": "@zamops/pool-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:pool": "hardhat test test/ConfidentialPrizePool.ts",
+    "test:draw-spike": "hardhat test test/EncryptedWeightedDrawSpike.ts",
+    "coverage": "hardhat coverage",
+    "deploy:localhost": "hardhat deploy --network localhost",
+    "deploy:sepolia": "hardhat deploy --network sepolia",
+    "deploy:sepolia:fresh": "hardhat deploy --network sepolia --reset --tags WeightedDrawSpike",
+    "deploy:sepolia:pools": "hardhat deploy --network sepolia --tags PoolInfrastructure",
+    "rehearse:sepolia": "hardhat run scripts/rehearse-weighted-draw-sepolia.ts --network sepolia",
+    "rehearse:sepolia:pool": "hardhat run scripts/rehearse-production-pool-sepolia.ts --network sepolia",
+    "rehearse:sepolia:fresh-wallet": "hardhat run scripts/rehearse-fresh-wallet-sepolia.ts --network sepolia",
+    "keeper:sepolia": "hardhat run scripts/run-pool-keeper-sepolia.ts --network sepolia",
+    "prepare:sepolia:cusdc": "hardhat run scripts/prepare-cusdc-pool-sepolia.ts --network sepolia",
+    "verify:sepolia": "hardhat etherscan-verify --network sepolia"
+  },
+  "dependencies": {
+    "@fhevm/solidity": "0.11.1",
+    "@openzeppelin/confidential-contracts": "0.5.0",
+    "@openzeppelin/contracts": "^5.6.1"
+  },
+  "devDependencies": {
+    "@fhevm/hardhat-plugin": "0.4.2",
+    "@fhevm/mock-utils": "0.4.2",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.9",
+    "@nomicfoundation/hardhat-ethers": "^3.1.3",
+    "@nomicfoundation/hardhat-verify": "^2.1.1",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/mocha": "^10.0.10",
+    "@zama-fhe/relayer-sdk": "0.4.1",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.16.0",
+    "hardhat": "^2.26.0",
+    "hardhat-deploy": "^0.12.4",
+    "hardhat-gas-reporter": "^2.2.2",
+    "solidity-coverage": "^0.8.14",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.7.2"
+  }
+}
