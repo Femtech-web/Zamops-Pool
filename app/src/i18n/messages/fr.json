@@ -136,6 +136,8 @@
   ,"tokens.kicker": "Actifs confidentiels"
   ,"error.amount": "Saisissez un montant valide supérieur à zéro."
   ,"error.faucetCooldown": "Vous avez récemment reçu ce jeton. Réessayez après la réinitialisation du faucet."
+  ,"faucet.cooldownTitle": "Jetons déjà reçus"
+  ,"faucet.cooldownDetail": "Vous avez déjà reçu {amount} {symbol}. Vous pourrez en demander à nouveau {time}."
   ,"error.faucetToken": "Ce jeton de test n’est pas disponible actuellement sur le faucet."
   ,"error.faucetService": "Le faucet sans frais est indisponible pour le moment. Réessayez bientôt."
   ,"pool.loading": "Recherche des pools disponibles…"

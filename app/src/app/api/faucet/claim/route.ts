@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, createWalletClient, getAddress, http, isAddress, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, formatUnits, getAddress, http, isAddress, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 
 import { POOL_FAUCET_ADDRESS, SEPOLIA_RPC_URL } from "@/config/contracts";
-import { faucetAbi } from "@/features/pool/abis";
+import { erc20Abi, faucetAbi } from "@/features/pool/abis";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     ]);
     if (!authorized) return NextResponse.json({ code: "RELAYER_UNAUTHORIZED" }, { status: 503 });
     if (sponsorBalance === BigInt(0)) return NextResponse.json({ code: "RELAYER_UNFUNDED" }, { status: 503 });
-    const [, enabled, , nextClaimAt, canClaim] = await publicClient.readContract({
+    const [claimAmount, enabled, , nextClaimAt, canClaim] = await publicClient.readContract({
       address: POOL_FAUCET_ADDRESS,
       abi: faucetAbi,
       functionName: "getClaimStatus",
@@ -34,7 +34,18 @@ export async function POST(request: Request) {
     });
 
     if (!enabled) return NextResponse.json({ code: "TOKEN_UNAVAILABLE" }, { status: 400 });
-    if (!canClaim) return NextResponse.json({ code: "COOLDOWN", nextClaimAt: nextClaimAt.toString() }, { status: 429 });
+    if (!canClaim) {
+      const decimals = await publicClient.readContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: "decimals",
+      });
+      return NextResponse.json({
+        code: "COOLDOWN",
+        claimAmount: formatUnits(claimAmount, decimals),
+        nextClaimAt: nextClaimAt.toString(),
+      }, { status: 429 });
+    }
 
     const hash = await walletClient.writeContract({ address: POOL_FAUCET_ADDRESS, abi: faucetAbi, functionName: "claimFor", args: [account, tokenAddress] });
     return NextResponse.json({ hash });

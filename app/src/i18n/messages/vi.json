@@ -136,6 +136,8 @@
   ,"tokens.kicker": "Tài sản bảo mật"
   ,"error.amount": "Nhập số tiền hợp lệ lớn hơn 0."
   ,"error.faucetCooldown": "Bạn vừa nhận token này. Hãy thử lại sau khi faucet được đặt lại."
+  ,"faucet.cooldownTitle": "Đã nhận token thử nghiệm"
+  ,"faucet.cooldownDetail": "Bạn đã nhận {amount} {symbol}. Bạn có thể yêu cầu lại {time}."
   ,"error.faucetToken": "Token thử nghiệm này hiện không có trên faucet."
   ,"error.faucetService": "Faucet không gas hiện không khả dụng. Vui lòng thử lại sau."
   ,"pool.loading": "Đang tìm các pool khả dụng…"

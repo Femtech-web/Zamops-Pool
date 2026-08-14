@@ -8,6 +8,7 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from "
 import { POOL_FAUCET_ADDRESS, SEPOLIA_CHAIN_ID } from "@/config/contracts";
 import { useActivity } from "@/features/activity/activity-provider";
 import { confidentialWrapperAbi, poolAbi } from "@/features/pool/abis";
+import { formatFaucetCooldown } from "@/features/tokens/faucet-cooldown";
 import type { PoolAsset } from "@/features/pool/use-pool-assets";
 import type { PoolState } from "@/features/pool/use-pool-state";
 import { useI18n } from "@/i18n/i18n-provider";
@@ -19,7 +20,7 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
   const { address } = useAccount();
   const publicClient = usePublicClient({ chainId: SEPOLIA_CHAIN_ID });
   const sdk = useZamaSDK();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const activity = useActivity();
   const [revealed, setRevealed] = useState<RevealedBalances>({});
   const { writeContractAsync } = useWriteContract();
@@ -49,13 +50,24 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     requireWallet(address);
     activity.begin({ title: t("operation.tokensTitle"), detail: t("operation.gaslessRequest"), step: 1, totalSteps: 1 });
     const response = await fetch("/api/faucet/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account: address, tokenAddress: asset.tokenAddress }) });
-    const payload = await response.json() as { hash?: Hex; code?: string };
+    const payload = await response.json() as { hash?: Hex; code?: string; claimAmount?: string; nextClaimAt?: string };
     let hash: Hex;
     if (response.ok && payload.hash) {
       hash = payload.hash;
       if (!publicClient) throw new Error("Sepolia client unavailable");
       await publicClient.waitForTransactionReceipt({ hash });
-    } else if (payload.code === "COOLDOWN") throw new Error("faucet cooldown");
+    } else if (payload.code === "COOLDOWN" && payload.claimAmount && payload.nextClaimAt) {
+      activity.fail();
+      activity.notifyInfo(t("faucet.cooldownTitle"), formatFaucetCooldown({
+        amount: payload.claimAmount,
+        locale,
+        nextClaimAt: payload.nextClaimAt,
+        symbol: asset.publicSymbol,
+        t,
+      }));
+      return false;
+    }
+    else if (payload.code === "COOLDOWN") throw new Error("faucet cooldown");
     else if (payload.code === "TOKEN_UNAVAILABLE") throw new Error("faucet token unavailable");
     else throw new Error("faucet service unavailable");
     activity.progress(t("operation.gaslessConfirming"), 1);

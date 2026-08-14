@@ -136,6 +136,8 @@
   ,"tokens.kicker": "기밀 자산"
   ,"error.amount": "0보다 큰 유효한 금액을 입력하세요."
   ,"error.faucetCooldown": "최근에 이 토큰을 받았습니다. 수도꼭지가 재설정된 후 다시 시도하세요."
+  ,"faucet.cooldownTitle": "이미 받은 테스트 토큰"
+  ,"faucet.cooldownDetail": "이미 {amount} {symbol}을(를) 받았습니다. {time} 다시 요청할 수 있습니다."
   ,"error.faucetToken": "이 테스트 토큰은 현재 수도꼭지에서 제공되지 않습니다."
   ,"error.faucetService": "가스리스 수도꼭지를 지금 사용할 수 없습니다. 잠시 후 다시 시도하세요."
   ,"pool.loading": "사용 가능한 풀을 찾는 중…"

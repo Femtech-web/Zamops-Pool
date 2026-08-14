@@ -13,6 +13,7 @@ import { WorkspaceSkeleton } from "@/components/workspace-skeleton";
 import { OperationFeedback } from "@/features/activity/operation-feedback";
 import { POOL_FAUCET_ADDRESS, SEPOLIA_CHAIN_ID } from "@/config/contracts";
 import { erc20Abi, confidentialWrapperAbi } from "@/features/pool/abis";
+import { formatFaucetCooldown } from "@/features/tokens/faucet-cooldown";
 import { usePoolAssets, type PoolAsset } from "@/features/pool/use-pool-assets";
 import { AppHeader } from "@/features/shell/app-header";
 import { useI18n } from "@/i18n/i18n-provider";
@@ -76,7 +77,7 @@ function TokensPortfolio({ assets, account, isLoading, error }: { assets: PoolAs
 }
 
 function TokenRow({ asset, account, batchBalance, batchRevealId }: { asset: PoolAsset; account: Address; batchBalance?: bigint; batchRevealId: number }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const sdk = useZamaSDK();
   const publicClient = usePublicClient({ chainId: SEPOLIA_CHAIN_ID });
   const activity = useActivity();
@@ -144,8 +145,19 @@ function TokenRow({ asset, account, batchBalance, batchRevealId }: { asset: Pool
     await run(async () => {
       activity.begin({ title: t("operation.tokensTitle"), detail: t("operation.gaslessRequest"), step: 1, totalSteps: 1 });
       const response = await fetch("/api/faucet/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ account, tokenAddress: asset.tokenAddress }) });
-      const payload = await response.json() as { hash?: Hex; code?: string };
+      const payload = await response.json() as { hash?: Hex; code?: string; claimAmount?: string; nextClaimAt?: string };
       if (!response.ok || !payload.hash) {
+        if (payload.code === "COOLDOWN" && payload.claimAmount && payload.nextClaimAt) {
+          activity.fail();
+          activity.notifyInfo(t("faucet.cooldownTitle"), formatFaucetCooldown({
+            amount: payload.claimAmount,
+            locale,
+            nextClaimAt: payload.nextClaimAt,
+            symbol: asset.publicSymbol,
+            t,
+          }));
+          return;
+        }
         if (payload.code === "COOLDOWN") throw new Error("faucet cooldown");
         if (payload.code === "TOKEN_UNAVAILABLE") throw new Error("faucet token unavailable");
         throw new Error("faucet service unavailable");

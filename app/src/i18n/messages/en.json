@@ -124,6 +124,8 @@
   "error.unknown": "Something interrupted this action. Please try again.",
   "error.amount": "Enter a valid amount greater than zero.",
   "error.faucetCooldown": "You recently received this token. Please try again after the faucet resets.",
+  "faucet.cooldownTitle": "Tokens already received",
+  "faucet.cooldownDetail": "You have already received {amount} {symbol}. You can request it again {time}.",
   "error.faucetToken": "This test token is not currently available from the faucet.",
   "error.faucetService": "The gasless faucet is unavailable right now. Please try again shortly.",
   "pool.loading": "Finding available pools…",

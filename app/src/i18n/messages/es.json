@@ -136,6 +136,8 @@
   ,"tokens.kicker": "Activos confidenciales"
   ,"error.amount": "Introduce un importe válido mayor que cero."
   ,"error.faucetCooldown": "Has recibido este token recientemente. Inténtalo de nuevo cuando se reinicie el faucet."
+  ,"faucet.cooldownTitle": "Tokens ya recibidos"
+  ,"faucet.cooldownDetail": "Ya has recibido {amount} {symbol}. Puedes solicitarlos de nuevo {time}."
   ,"error.faucetToken": "Este token de prueba no está disponible actualmente en el faucet."
   ,"error.faucetService": "El faucet sin gas no está disponible ahora. Inténtalo de nuevo en breve."
   ,"pool.loading": "Buscando pools disponibles…"

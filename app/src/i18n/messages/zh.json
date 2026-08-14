@@ -136,6 +136,8 @@
   ,"tokens.kicker": "机密资产"
   ,"error.amount": "请输入大于零的有效金额。"
   ,"error.faucetCooldown": "你最近已领取过此代币。请在水龙头重置后重试。"
+  ,"faucet.cooldownTitle": "已领取测试代币"
+  ,"faucet.cooldownDetail": "你已经领取了 {amount} {symbol}，{time}可以再次领取。"
   ,"error.faucetToken": "水龙头目前不提供此测试代币。"
   ,"error.faucetService": "免 Gas 水龙头暂时不可用，请稍后重试。"
   ,"pool.loading": "正在查找可用奖池…"
