@@ -69,6 +69,21 @@ Once `requestDraw()` is mined, the pool leaves Open and deposits pause until the
 
 Automation is scheduled every 10 minutes. A healthy draw therefore normally completes approximately **60–70 minutes after the pool reopens**, plus normal Sepolia and Zama decryption latency. If automation is delayed, the UI offers any wallet the next valid permissionless step after about 80 minutes.
 
+### What triggers each draw stage
+
+The timer, draw trigger and winner selection are separate operations:
+
+| Stage | Onchain operation | Purpose |
+|---|---|---|
+| Open the round | `PoolReopened` | Starts the next 60-minute countdown and enables deposits |
+| Trigger the due draw | `requestDraw()` | Checks the deadline and participants, freezes the encrypted weights and funded prize, closes deposits, and begins proof-backed draw processing; it does not pick the winner or start the timer |
+| Start encrypted selection | `startSelection()` | Verifies the publicly decrypted combined eligible weight and creates encrypted random candidates with `FHE.randEuint64` |
+| Select the weighted interval | `processSelectionBatch()` | Compares the encrypted random target with encrypted cumulative deposit ranges; larger deposits cover more of the range but every positive saver can win |
+| Verify and award | `finalizeSelection()` | Verifies the selection result and credits the prize to the selected saver's encrypted winnings without emitting a readable winner or amount |
+| Prepare the next round | `processNextDrawSyncBatch()` | Synchronizes encrypted weights after in-draw withdrawals, then emits `PoolReopened` and starts the next countdown |
+
+For example, deposits of 10, 30 and 60 create approximately 10%, 30% and 60% chances in a 100-unit combined range. The 60-unit saver is most likely to win, but the encrypted random target can still select either smaller saver.
+
 Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for weighted selection, rejection sampling, empty draws and the no-loss invariant.
 
 ## Zama integration, end to end
