@@ -168,16 +168,16 @@ export function usePoolActions(asset: PoolAsset, poolState: PoolState | undefine
     if (!poolState) throw new Error("Pool state unavailable");
     const state = poolState.lifecycle;
     activity.begin({ title: t("operation.drawTitle"), detail: drawStage(t, state), step: 1, totalSteps: 1 });
-    let hash: Hex;
-    if (state === 0) hash = await transact({ address: asset.poolAddress, abi: poolAbi, functionName: "requestDraw", gas: BigInt(2_000_000), chainId: SEPOLIA_CHAIN_ID });
+    if (state === 0) await transact({ address: asset.poolAddress, abi: poolAbi, functionName: "requestDraw", gas: BigInt(2_000_000), chainId: SEPOLIA_CHAIN_ID });
     else if (state === 1 || state === 3) {
       const functionName = state === 1 ? "totalWeightHandle" : "resultHandle";
       const handle = await publicClient!.readContract({ address: asset.poolAddress, abi: poolAbi, functionName });
       const decryption = await sdk.decryption.decryptPublicValues([handle]);
-      hash = await transact({ address: asset.poolAddress, abi: poolAbi, functionName: state === 1 ? "startSelection" : "finalizeSelection", args: [[handle], decryption.abiEncodedClearValues, decryption.decryptionProof], gas: state === 1 ? BigInt(3_500_000) : BigInt(2_500_000), chainId: SEPOLIA_CHAIN_ID });
-    } else hash = await transact({ address: asset.poolAddress, abi: poolAbi, functionName: state === 2 ? "processSelectionBatch" : "processNextDrawSyncBatch", args: [8], gas: BigInt(3_000_000), chainId: SEPOLIA_CHAIN_ID });
+      await transact({ address: asset.poolAddress, abi: poolAbi, functionName: state === 1 ? "startSelection" : "finalizeSelection", args: [[handle], decryption.abiEncodedClearValues, decryption.decryptionProof], gas: state === 1 ? BigInt(3_500_000) : BigInt(2_500_000), chainId: SEPOLIA_CHAIN_ID });
+    } else await transact({ address: asset.poolAddress, abi: poolAbi, functionName: state === 2 ? "processSelectionBatch" : "processNextDrawSyncBatch", args: [8], gas: BigInt(3_000_000), chainId: SEPOLIA_CHAIN_ID });
     await refresh();
-    activity.complete({ kind: "draw", title: t("success.drawTitle"), detail: t("success.drawDetail"), txHash: hash, contractAddress: asset.poolAddress, assetSymbol: asset.symbol, assetIcon: asset.icon });
+    activity.fail();
+    activity.notifySuccess(t("success.drawTitle"), t("success.drawDetail"));
   });
 
   return { getTokens, wrap, deposit, withdraw, prepareWithdraw, reveal, hide, claim, advanceDraw, revealed, isPending: Boolean(activity.pending) };

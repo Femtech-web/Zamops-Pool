@@ -18,7 +18,7 @@ jobs:
       run:
         working-directory: contracts
     env:
-      KEEPER_ENABLED: ${{ vars.KEEPER_ENABLED || 'true' }}
+      KEEPER_ENABLED: ${{ vars.KEEPER_ENABLED }}
       SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || vars.SEPOLIA_RPC_URL }}
       KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
       KEEPER_PRIZE_CONFIG_JSON: ${{ vars.KEEPER_PRIZE_CONFIG_JSON }}
@@ -36,13 +36,20 @@ jobs:
         working-directory: .
         shell: bash
         run: |
-          if [[ "$KEEPER_ENABLED" == "false" ]]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "## Sepolia pool keeper" >> "$GITHUB_STEP_SUMMARY"
-            echo "Paused by the Zamops-pool Environment variable KEEPER_ENABLED=false. No transactions were submitted." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          fi
+          case "${KEEPER_ENABLED,,}" in
+            false|0|off|no)
+              echo "enabled=false" >> "$GITHUB_OUTPUT"
+              echo "## Sepolia pool keeper" >> "$GITHUB_STEP_SUMMARY"
+              echo "Paused by KEEPER_ENABLED=${KEEPER_ENABLED}. No transactions were submitted." >> "$GITHUB_STEP_SUMMARY"
+              ;;
+            ""|true|1|on|yes)
+              echo "enabled=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::KEEPER_ENABLED must be true/false, on/off, yes/no or 1/0. Received: ${KEEPER_ENABLED}"
+              exit 1
+              ;;
+          esac
       - if: steps.keeper-control.outputs.enabled == 'true'
         uses: actions/checkout@v4
       - name: Validate keeper configuration

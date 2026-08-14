@@ -66,6 +66,10 @@ type KeeperReport = {
 };
 
 async function main() {
+  if (flagDisabled(process.env.KEEPER_ENABLED)) {
+    console.info(JSON.stringify({ status: "paused", reason: "KEEPER_ENABLED disables all keeper transactions" }, null, 2));
+    return;
+  }
   const startedAt = new Date().toISOString();
   const chain = await ethers.provider.getNetwork();
   if (network.name !== "sepolia" || chain.chainId !== SEPOLIA_CHAIN_ID) throw new Error("Keeper is Sepolia-only");
@@ -75,7 +79,7 @@ async function main() {
   if (!keeper) throw new Error("KEEPER_PRIVATE_KEY is not configured");
   const factoryAddress = process.env.KEEPER_FACTORY_ADDRESS ?? DEFAULT_FACTORY;
   const faucetAddress = process.env.KEEPER_FAUCET_ADDRESS ?? DEFAULT_FAUCET;
-  const fundingEnabled = process.env.KEEPER_FUNDING_ENABLED !== "false";
+  const fundingEnabled = !flagDisabled(process.env.KEEPER_FUNDING_ENABLED);
   const dryRun = process.env.KEEPER_DRY_RUN === "true";
   const onlyPool = process.env.KEEPER_POOL_ADDRESS ? ethers.getAddress(process.env.KEEPER_POOL_ADDRESS) : undefined;
   const minimumBalance = ethers.parseEther(process.env.KEEPER_MIN_BALANCE_ETH ?? DEFAULT_MIN_BALANCE_ETH);
@@ -335,6 +339,10 @@ function positiveInteger(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`Expected a positive integer, received: ${value}`);
   return parsed;
+}
+
+function flagDisabled(value: string | undefined) {
+  return ["false", "0", "off", "no"].includes(value?.trim().toLowerCase() ?? "");
 }
 
 async function inspectRpc(maximumBlockAgeSeconds: number, alerts: KeeperAlert[]) {

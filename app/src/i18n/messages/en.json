@@ -219,11 +219,11 @@
   "draw.stageSelect": "Checking encrypted entries in a small batch…",
   "draw.stageResult": "Verifying that the private selection succeeded…",
   "draw.stageSync": "Preparing private balances for the next draw…"
-  ,"draw.automationScheduled": "Scheduled automatically"
-  ,"draw.automationTiming": "The keeper checks every ten minutes. This draw usually completes 60–70 minutes after the pool reopens."
+  ,"draw.automationScheduled": "Draw scheduled"
+  ,"draw.automationTiming": "Eligible draws are checked every ten minutes. Permissionless help appears if no progress is confirmed."
   ,"draw.automationWaitingSaver": "Waiting for the first saver"
   ,"draw.automationWaitingSaverDetail": "Automation skips empty pools and starts after someone joins."
-  ,"draw.automationWorking": "Automation is completing this draw"
+  ,"draw.automationWorking": "Waiting for scheduled progress"
   ,"draw.fallbackUnlocks": "Permissionless help unlocks in"
   ,"draw.fallbackReady": "Automation appears delayed"
   ,"draw.fallbackReadyDetail": "Any saver can submit the next permissionless draw step."

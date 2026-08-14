@@ -79,8 +79,11 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(window.localStorage.getItem(storageKey(address)) ?? "[]") as ActivityItem[];
-      const restore = window.setTimeout(() => setLocalActivities(saved.filter((item) => item.kind !== ("reveal" as ActivityKind)).slice(0, 100)), 0);
+      const key = storageKey(address);
+      const saved = JSON.parse(window.localStorage.getItem(key) ?? "[]") as ActivityItem[];
+      const cleaned = saved.filter((item) => item.kind !== ("reveal" as ActivityKind) && item.kind !== "draw").slice(0, 100);
+      window.localStorage.setItem(key, JSON.stringify(cleaned));
+      const restore = window.setTimeout(() => setLocalActivities(cleaned), 0);
       return () => window.clearTimeout(restore);
     } catch { return; }
   }, [address]);
@@ -136,7 +139,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
 type IndexedRow = {
   id: string;
-  type: "DEPOSIT" | "WITHDRAWAL" | "PRIZE_CLAIMED" | "DRAW_COMPLETED" | "DRAW_CANCELLED_EMPTY" | "POOL_REOPENED";
+  type: "DEPOSIT" | "WITHDRAWAL" | "PRIZE_CLAIMED";
   pool: Hex;
   asset: Hex;
   encryptedAmount?: Hex;
@@ -145,7 +148,7 @@ type IndexedRow = {
 };
 
 async function fetchIndexedActivities(endpoint: string, address: Hex, signal: AbortSignal, t: ReturnType<typeof useI18n>["t"]): Promise<ActivityItem[]> {
-  const query = `query WalletActivity($account: Bytes!) { poolActivities(first: 100, orderBy: timestamp, orderDirection: desc, where: { account: $account, type_not: PRIZE_FUNDED }) { id type pool asset encryptedAmount transactionHash timestamp } }`;
+  const query = `query WalletActivity($account: Bytes!) { poolActivities(first: 100, orderBy: timestamp, orderDirection: desc, where: { account: $account, type_in: [DEPOSIT, WITHDRAWAL, PRIZE_CLAIMED] }) { id type pool asset encryptedAmount transactionHash timestamp } }`;
   const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query, variables: { account: address.toLowerCase() } }), signal });
   if (!response.ok) throw new Error("Activity index unavailable");
   const payload = await response.json() as { data?: { poolActivities?: IndexedRow[] }; errors?: unknown[] };
@@ -162,13 +165,13 @@ function indexedRowToActivity(row: IndexedRow, walletAddress: Hex, t: ReturnType
 function indexedActivityDefinition(type: IndexedRow["type"], t: ReturnType<typeof useI18n>["t"]): Pick<ActivityItem, "kind" | "title" | "detail"> {
   if (type === "DEPOSIT") return { kind: "deposit", title: t("success.depositTitle"), detail: t("success.depositDetail") };
   if (type === "WITHDRAWAL") return { kind: "withdraw", title: t("success.withdrawTitle"), detail: t("success.withdrawDetail") };
-  if (type === "PRIZE_CLAIMED") return { kind: "claim", title: t("success.claimTitle"), detail: t("success.claimDetail") };
-  return { kind: "draw", title: t("success.drawTitle"), detail: t("success.drawDetail") };
+  return { kind: "claim", title: t("success.claimTitle"), detail: t("success.claimDetail") };
 }
 
 function mergeActivities(indexed: ActivityItem[], local: ActivityItem[]): ActivityItem[] {
-  const indexedKeys = new Set(indexed.map(activityKey));
-  return [...indexed, ...local.filter((item) => !indexedKeys.has(activityKey(item)))].sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
+  const moneyIndexed = indexed.filter((item) => item.kind !== "draw");
+  const indexedKeys = new Set(moneyIndexed.map(activityKey));
+  return [...moneyIndexed, ...local.filter((item) => item.kind !== "draw" && !indexedKeys.has(activityKey(item)))].sort((a, b) => b.timestamp - a.timestamp).slice(0, 100);
 }
 
 function activityKey(item: ActivityItem) { return item.txHash ? `${item.txHash}:${item.kind}` : item.id; }
