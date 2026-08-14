@@ -50,6 +50,10 @@ const STORAGE_PREFIX = "zamops-pool-activity-v1";
 
 export function ActivityProvider({ children }: { children: ReactNode }) {
   const { address } = useAccount();
+  return <AccountActivityProvider key={address?.toLowerCase() ?? "disconnected"} address={address}>{children}</AccountActivityProvider>;
+}
+
+function AccountActivityProvider({ children, address }: { children: ReactNode; address: Hex | undefined }) {
   const { t } = useI18n();
   const [localActivities, setLocalActivities] = useState<ActivityItem[]>([]);
   const [indexedActivities, setIndexedActivities] = useState<ActivityItem[]>([]);

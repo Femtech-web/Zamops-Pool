@@ -37,7 +37,7 @@ function ConnectedWorkspace() {
   if (error || !address) return <QuietState title={t("pool.unavailableTitle")} body={t("pool.unavailableBody")} />;
   if (!asset) return <QuietState title={t("pool.noPoolsTitle")} body={t("pool.noPoolsBody")} />;
 
-  return <PoolDashboard key={asset.poolAddress} asset={asset} assets={assets} account={address} onSelect={setSelectedAddress} />;
+  return <PoolDashboard key={`${asset.poolAddress}:${address.toLowerCase()}`} asset={asset} assets={assets} account={address} onSelect={setSelectedAddress} />;
 }
 
 function PoolDashboard({ asset, assets, account, onSelect }: { asset: PoolAsset; assets: PoolAsset[]; account: `0x${string}`; onSelect: (address: string) => void }) {
