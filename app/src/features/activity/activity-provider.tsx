@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Hex } from "viem";
 import { useAccount } from "wagmi";
 
@@ -50,10 +50,6 @@ const STORAGE_PREFIX = "zamops-pool-activity-v1";
 
 export function ActivityProvider({ children }: { children: ReactNode }) {
   const { address } = useAccount();
-  return <AccountActivityProvider key={address?.toLowerCase() ?? "disconnected"} address={address}>{children}</AccountActivityProvider>;
-}
-
-function AccountActivityProvider({ children, address }: { children: ReactNode; address: Hex | undefined }) {
   const { t } = useI18n();
   const [localActivities, setLocalActivities] = useState<ActivityItem[]>([]);
   const [indexedActivities, setIndexedActivities] = useState<ActivityItem[]>([]);
@@ -62,6 +58,20 @@ function AccountActivityProvider({ children, address }: { children: ReactNode; a
   const [errorToast, setErrorToast] = useState<ErrorToast | null>(null);
   const [successToast, setSuccessToast] = useState<SuccessToast | null>(null);
   const [infoToast, setInfoToast] = useState<InfoToast | null>(null);
+  const accountKey = address?.toLowerCase() ?? "disconnected";
+  const previousAccountKey = useRef(accountKey);
+
+  useLayoutEffect(() => {
+    if (previousAccountKey.current === accountKey) return;
+    previousAccountKey.current = accountKey;
+    setLocalActivities([]);
+    setIndexedActivities([]);
+    setPending(null);
+    setSuccess(null);
+    setErrorToast(null);
+    setSuccessToast(null);
+    setInfoToast(null);
+  }, [accountKey]);
 
   useEffect(() => {
     if (!errorToast) return;

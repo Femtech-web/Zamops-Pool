@@ -52,11 +52,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
 }
 
 function ZamaBridge({ children }: { children: ReactNode }) {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const wallet = useWalletClient();
   const config = useMemo(() => {
-    if (!publicClient || !wallet.data) return null;
+    if (!address || !publicClient || !wallet.data?.account) return null;
+    if (wallet.data.account.address.toLowerCase() !== address.toLowerCase()) return null;
     return createZamaConfig({
       chains: [zamaChain],
       publicClient,
@@ -65,9 +66,9 @@ function ZamaBridge({ children }: { children: ReactNode }) {
       storage: indexedDBStorage,
       permitStorage: indexedDBStorage,
     });
-  }, [publicClient, wallet.data]);
+  }, [address, publicClient, wallet.data]);
 
   if (!isConnected) return children;
-  if (!config) return null;
-  return <ZamaProvider config={config}>{children}</ZamaProvider>;
+  if (!address || !config) return null;
+  return <ZamaProvider key={address.toLowerCase()} config={config}>{children}</ZamaProvider>;
 }
