@@ -4,8 +4,11 @@
 
 ZamOps Pool is a confidential no-loss prize-savings protocol built on [Zama FHEVM](https://docs.zama.ai/protocol). Savers Shield ERC-20 assets into ERC-7984 confidential tokens, deposit without publishing the amount, receive encrypted odds proportional to their savings, and remain free to withdraw their principal throughout the draw lifecycle.
 
+**Live app:** [pool.zamops.xyz](https://pool.zamops.xyz)
+
 | | |
 |---|---|
+| Application | [https://pool.zamops.xyz](https://pool.zamops.xyz) |
 | Network | Ethereum Sepolia (`11155111`) |
 | FHE | Zama FHEVM Solidity `0.11.1`, relayer SDK `0.4.1` |
 | Confidential token standard | OpenZeppelin ERC-7984 |
@@ -60,7 +63,11 @@ flowchart LR
 
 The pool keeps principal, prize reserve and winnings separate. Losing changes neither principal ownership nor withdrawal rights. The testnet keeper funds prizes with mock yield; it does not take funds from savers.
 
-The draw interval is 60 minutes and automation checks every 10 minutes. A healthy draw therefore normally completes approximately **60–70 minutes after the pool reopens**, plus normal Sepolia and Zama decryption latency. If automation is delayed, the UI offers any wallet the next valid permissionless step after about 80 minutes.
+Each pool remains Open while its 60-minute timer counts down. During that window, savers can deposit and their encrypted balances become weight in the upcoming draw. `nextDrawAt` is the earliest time the draw may be triggered, not a transaction that fires by itself: the final encrypted weight snapshot is taken when the keeper or another permissionless caller submits `requestDraw()`.
+
+Once `requestDraw()` is mined, the pool leaves Open and deposits pause until the draw finishes. The frontend disables **Deposit privately** and shows the paused state, while the contract independently rejects direct deposit attempts; this is an onchain rule, not only a UI guard. Withdrawals remain available throughout the draw. When `PoolReopened` completes the lifecycle, deposits become available again and a new 60-minute countdown begins.
+
+Automation is scheduled every 10 minutes. A healthy draw therefore normally completes approximately **60–70 minutes after the pool reopens**, plus normal Sepolia and Zama decryption latency. If automation is delayed, the UI offers any wallet the next valid permissionless step after about 80 minutes.
 
 Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for weighted selection, rejection sampling, empty draws and the no-loss invariant.
 
@@ -133,7 +140,7 @@ Optional Etherscan source publication can be run with `npm --prefix contracts ru
 
 | Requirement | Implementation and proof |
 |---|---|
-| Public web dApp | Next.js wallet application prepared for the final public deployment |
+| Public web dApp | Live Sepolia wallet application at [pool.zamops.xyz](https://pool.zamops.xyz) |
 | Deposit → draw → claim → withdraw | Completed on canonical cUSDC and fresh-wallet cUSDT journeys |
 | Encrypted deposits and balances | ERC-7984 custody plus `euint64` principal, weights, prize reserve and winnings |
 | Weighted onchain FHE randomness | `FHE.randEuint64`, unbiased encrypted rejection sampling and encrypted prefix selection |
@@ -166,8 +173,8 @@ Every canonical transaction link and measurement is in [testing and release evid
 Requirements: Node.js 20+, npm, a Sepolia RPC URL, and a browser wallet on Sepolia.
 
 ```bash
-git clone <repository-url>
-cd zamops-pool
+git clone https://github.com/Femtech-web/Zamops-Pool.git
+cd Zamops-Pool
 
 cp contracts/.env.example contracts/.env
 cp app/.env.example app/.env
@@ -179,7 +186,7 @@ npm --prefix contracts test
 npm --prefix app run dev
 ```
 
-Open `http://localhost:3000`. Environment variables are documented in the example files. Keep private keys server-side and set `NEXT_PUBLIC_SITE_URL` to the final HTTPS origin before the production frontend build.
+Open `http://localhost:3000`. Environment variables are documented in the example files. Keep private keys server-side. Production deployments must set `NEXT_PUBLIC_SITE_URL=https://pool.zamops.xyz` before building so canonical, Open Graph, sitemap and manifest URLs use the public origin.
 
 ## Release checks
 
@@ -190,7 +197,18 @@ npm --prefix app run typecheck
 npm --prefix app run build
 ```
 
-For deploy, verification, keeper health and recovery instructions, see [deployment and operations](docs/deployment-and-operations.md).
+## Deployment and operations scripts
+
+| Purpose | Command |
+|---|---|
+| Compile contracts | `npm --prefix contracts run compile` |
+| Deploy the canonical Sepolia pool infrastructure | `npm --prefix contracts run deploy:sepolia:pools` |
+| Optionally publish canonical sources on Etherscan | `npm --prefix contracts run verify:canonical:sepolia` |
+| Run the multi-pool Sepolia keeper once | `npm --prefix contracts run keeper:sepolia` |
+| Submit one permissionless recovery step | `npm --prefix contracts run fallback:sepolia` |
+| Build the production frontend | `npm --prefix app run build` |
+
+Contract deployment and keeper commands read server-only Sepolia configuration from `contracts/.env` or GitHub Actions secrets and variables. Frontend public configuration is listed in `app/.env.example`. Constructor arguments, canonical addresses, keeper controls, health thresholds and recovery procedures are documented in [deployment and operations](docs/deployment-and-operations.md).
 
 ## Repository map
 
