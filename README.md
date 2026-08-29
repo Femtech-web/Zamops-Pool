@@ -84,7 +84,13 @@ The timer, draw trigger and winner selection are separate operations:
 
 For example, deposits of 10, 30 and 60 create approximately 10%, 30% and 60% chances in a 100-unit combined range. The 60-unit saver is most likely to win, but the encrypted random target can still select either smaller saver.
 
-Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for weighted selection, rejection sampling, empty draws and the no-loss invariant.
+### Why snapshot-weighted cumulative selection
+
+ZamOps deliberately gives each encrypted unit of principal present when `requestDraw()` is mined one position in a dense range `[0, totalWeight)`. This produces exact `deposit / total` odds, does not cap a large saver at a fixed slot size, and leaves no padded positions where a valid non-empty draw can end without a winner. Encrypted rejection sampling removes the modulo bias created when the total is not a power of two.
+
+The tradeoff is explicit: a deposit made shortly before the snapshot receives the same per-unit weight as one held for the entire round. A time-weighted average balance would discourage that behavior, but it would also require encrypted historical checkpoints, time multiplication, wider accumulators, additional HCU and a policy for whether withdrawn capital retains accrued eligibility. For this bounded prototype, exact current-capital odds, simple no-loss accounting and verifiable completion were prioritized over duration weighting.
+
+This is a product and FHE engineering choice, not a claim that snapshot weighting is always superior. Read [selection design rationale](docs/selection-design-rationale.md) for the probability proof, TWAB and fixed-slot comparison, accepted limitations, alternatives and reconsideration triggers. Read [draw fairness and accounting](docs/draw-fairness-and-accounting.md) for the lifecycle and no-loss invariant.
 
 ## Zama integration, end to end
 
@@ -93,6 +99,19 @@ The browser uses the Zama React/Relayer SDK to build encrypted `euint64` inputs 
 For selection, `FHE.randEuint64` samples encrypted candidates below the next power-of-two bound. Encrypted rejection sampling removes modulo bias; encrypted cumulative-weight comparisons select the winning interval. No offchain service receives plaintext balances or chooses the winner. The keeper only pays gas and submits permissionless lifecycle calls.
 
 For viewing, the connected wallet signs an EIP-712 authorization. The Zama relayer checks that the user has ACL access to the current ciphertext handle and returns that value to the browser. Reveal does not publish the value or create an onchain transaction.
+
+### From encrypted input to verified result
+
+ZamOps does not ask users or keepers to trust an opaque encrypted value. Each confidential action crosses an explicit authorization and proof chain:
+
+| Layer | What ZamOps implements | What it prevents |
+|---|---|---|
+| Expiring operator delegation | Before the first deposit for an asset, the saver authorizes that asset's non-upgradeable pool as an ERC-7984 operator for 30 days. The frontend checks the current authorization before requesting it again. | The pool cannot use `confidentialTransferFrom` after the authorization expires; operator status does not grant access to decrypt the saver's token balance. |
+| Encrypted-input attestation | The browser encrypts the amount for the exact pool and wallet and submits the resulting handle with its input proof. `FHE.fromExternal` validates that proof before the value enters pool accounting. | A caller cannot substitute an unregistered, malformed or differently scoped ciphertext and have it treated as a valid deposit or withdrawal input. |
+| Scoped ciphertext permissions | The pool uses `FHE.allowTransient` only for the token call, `FHE.allowThis` for encrypted state it must reuse, and `FHE.allow` for the saver values that wallet may privately decrypt. | The token receives only transaction-scoped computation access, while unrelated wallets cannot decrypt another saver's principal, winnings or activity amount. |
+| KMS proof verification | The frozen aggregate and final winner-found boolean are made publicly decryptable. Before accepting either clear result, the pool checks the expected handle and verifies the signed decryption proof with `FHE.checkSignatures`. | A keeper or fallback caller cannot invent a total, replace the requested handle, forge a draw result or select a winner. |
+
+Here, **attestation** means cryptographic evidence that an encrypted input is valid and correctly scoped; it is not an identity badge or a claim about the saver. The keeper transports proof-backed results and pays gas, but the contract verifies them independently. The complete ACL and proof lifecycle is documented in [architecture and privacy](docs/architecture-and-privacy.md).
 
 ## Privacy at a glance
 
@@ -173,7 +192,7 @@ Optional Etherscan source publication can be run with `npm --prefix contracts ru
 
 | Layer | Result | Evidence |
 |---|---|---|
-| Solidity | 24 passing tests | Confidential accounting, draw boundaries, retries, lifecycle, ACLs, faucet and limits |
+| Solidity | 27 passing tests | Confidential accounting, input/decryption proofs, draw boundaries, HCU budgets, retries, lifecycle, ACLs, faucet and limits |
 | cUSDC | Complete three-wallet journey | 10/30/60 deposits, 50 prize, claim, all principal withdrawn |
 | cUSDT | Complete fresh-wallet smoke | Faucet, Shield, deposit, draw, claim, withdraw, final zero |
 | Permissionless fallback | Passed | Unprivileged request followed by automated completion |
@@ -182,6 +201,14 @@ Optional Etherscan source publication can be run with `npm --prefix contracts ru
 | FHE measurements | Captured | Gas, HCU, max depth and decryption timing |
 
 Every canonical transaction link and measurement is in [testing and release evidence](docs/testing-and-release-evidence.md).
+
+### Independently inspect the encrypted computation
+
+Blockscout exposes the FHE operations executed by a confidential transaction without revealing their plaintext operands. The canonical cUSDC selection transaction shows **27 FHE operations**, **1,797,102 total HCU** and **899,000 maximum HCU depth**, including encrypted addition, comparison, boolean logic and conditional selection. [Inspect the selection operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718).
+
+The winning confidential claim independently shows **7 FHE operations**, **586,064 total HCU** and **369,000 maximum depth**. [Inspect the claim operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x8fcb680beb289e7134dfffd9fbfb6f424c58f974a58a4922c2910e30f82a660f).
+
+HCU measures homomorphic computation, not Ethereum gas. **Total HCU** adds the cost of every FHE operation in a transaction; **maximum HCU depth** follows the most expensive dependency chain, reflecting how much encrypted work must happen sequentially even when independent operations can run in parallel. Local tests calculate both from FHE operation logs and pin expected values as regression gates; Blockscout provides independent evidence for the deployed transactions.
 
 ## Run locally
 
@@ -207,6 +234,7 @@ Open `http://localhost:3000`. Environment variables are documented in the exampl
 
 ```bash
 npm --prefix contracts test
+npm --prefix contracts run test:hcu
 npm --prefix app run lint
 npm --prefix app run typecheck
 npm --prefix app run build
@@ -244,6 +272,7 @@ Contract deployment and keeper commands read server-only Sepolia configuration f
 - [Documentation index](docs/README.md)
 - [Architecture and privacy](docs/architecture-and-privacy.md)
 - [Draw fairness and accounting](docs/draw-fairness-and-accounting.md)
+- [Selection design rationale](docs/selection-design-rationale.md)
 - [Deployment and operations](docs/deployment-and-operations.md)
 - [Testing and release evidence](docs/testing-and-release-evidence.md)
 - [Security and limitations](docs/security-and-limitations.md)

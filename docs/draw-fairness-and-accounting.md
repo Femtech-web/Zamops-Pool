@@ -18,6 +18,8 @@ For weights `w₁ … wₙ`, the contract snapshots total weight `T`, selects a 
 
 FHE random generation is power-of-two bounded. When `T` is not a power of two, the contract uses bounded rejection sampling: it draws several candidates, selects the first candidate below `T`, and retries the draw selection if no candidate is valid. This avoids modulo bias.
 
+The weight is a snapshot of eligible principal when `requestDraw()` is mined, not a time-weighted average. Every unit present at that instant receives equal per-unit probability regardless of how long it was deposited. The reasoning, alternatives and accepted timing tradeoff are documented in [selection design rationale](selection-design-rationale.md).
+
 ## Lifecycle
 
 ```mermaid
@@ -41,4 +43,3 @@ The keeper does not fund or request a draw when a pool has no registered partici
 ## Permissionless progress
 
 The keeper is convenience automation, not draw authority. Every draw-advancement function is permissionless. If automation stalls, the application exposes the next valid draw step after a delay, allowing any wallet to continue the same state machine.
-

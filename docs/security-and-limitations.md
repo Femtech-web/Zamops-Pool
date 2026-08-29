@@ -28,6 +28,7 @@
 | 64 participants, 8 per batch | Demonstrates bounded confidential computation; not mainnet scale |
 | Public aggregate eligible weight | Total pool participation value becomes readable during the draw |
 | Public addresses and timing | FHE protects amounts, not transaction metadata or traffic analysis |
+| Snapshot rather than time-weighted odds | A deposit made shortly before `requestDraw()` receives the same per-unit current-draw weight as one held for the full round |
 | Winner may self-reveal by claiming | A public claim transaction can correlate an address with a prize event even though the amount remains encrypted on-chain |
 | Zero-value participation is possible | The prototype does not charge or enforce a minimum encrypted deposit |
 | Non-upgradeable pools | Fixes require new deployments and migration, by design |
@@ -35,4 +36,3 @@
 ## Before production
 
 A mainnet design needs an independent smart-contract audit, token/economic review, production yield-adapter risk controls, liveness objectives, funded monitoring, incident runbooks, privacy threat modeling, participant-scale benchmarking, and a carefully designed migration policy. Do not treat the Sepolia deployment as audited or production-ready.
-

@@ -1,6 +1,7 @@
 import { FhevmType } from "@fhevm/hardhat-plugin";
 import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
+import type { ContractTransactionResponse, TransactionReceipt } from "ethers";
 import { ethers, fhevm } from "hardhat";
 
 import type {
@@ -11,6 +12,14 @@ import type {
 
 describe("ConfidentialPrizePool", function () {
   const OPERATOR_UNTIL = 281_474_976_710_655n;
+  const EXPECTED_LIFECYCLE_HCU = {
+    deposit: { global: 1_435_192, depth: 732_032 },
+    prizeFunding: { global: 748_032, depth: 369_000 },
+    selectionBatch: { global: 1_198_068, depth: 737_000 },
+    nextDrawSync: { global: 324_000, depth: 324_000 },
+    claim: { global: 586_064, depth: 369_000 },
+    withdrawal: { global: 1_273_032, depth: 570_000 },
+  } as const;
 
   before(function () {
     if (!fhevm.isMock) this.skip();
@@ -160,6 +169,17 @@ describe("ConfidentialPrizePool", function () {
     expect(await decryptTokenBalance(token, alice)).to.equal(25n);
   });
 
+  it("rejects an encrypted input proof scoped to another wallet", async function () {
+    const { alice, bob, token, pool } = await deployFixture();
+    await mintAndApprove(token, pool, bob, 25n);
+    const aliceScopedInput = await poolInput(pool, alice, 10n);
+
+    await expect(
+      pool.connect(bob).deposit(aliceScopedInput.handles[0], aliceScopedInput.inputProof),
+    ).to.be.reverted;
+    expect(await decryptTokenBalance(token, bob)).to.equal(25n);
+  });
+
   it("confidentially caps deposits before the aggregate can overflow", async function () {
     const { alice, bob, token, pool } = await deployFixture();
     const maximum = 1n << 63n;
@@ -203,6 +223,81 @@ describe("ConfidentialPrizePool", function () {
     expect(await decryptTokenBalance(token, alice)).to.equal(100n);
     expect(await decryptTokenBalance(token, bob)).to.equal(150n);
     expect(await decryptTokenBalance(token, funder)).to.equal(50n);
+  });
+
+  it("rejects a forged public-decryption result for the expected handle", async function () {
+    const { alice, token, pool } = await deployFixture();
+    await mintAndApprove(token, pool, alice, 20n);
+    await deposit(token, pool, alice, 10n);
+    await pool.requestDraw();
+
+    const expectedHandle = await pool.totalWeightHandle();
+    const forgedCleartext = ethers.AbiCoder.defaultAbiCoder().encode(["uint64"], [10n]);
+    await expect(
+      pool.startSelection([expectedHandle], forgedCleartext, "0x1234"),
+    ).to.be.reverted;
+    expect(await pool.state()).to.equal(1n);
+  });
+
+  it("measures HCU across the confidential pool lifecycle", async function () {
+    const { alice, bob, funder, token, pool } = await deployFixture();
+    for (const saver of [alice, bob]) await mintAndApprove(token, pool, saver, 100n);
+    await mintAndApprove(token, pool, funder, 100n);
+
+    async function receiptOf(
+      transaction: Promise<ContractTransactionResponse>,
+    ): Promise<TransactionReceipt> {
+      const receipt = await (await transaction).wait();
+      if (!receipt) throw new Error("HCU measurement transaction was not mined");
+      return receipt;
+    }
+
+    const aliceInput = await poolInput(pool, alice, 10n);
+    const depositReceipt = await receiptOf(
+      pool.connect(alice).deposit(aliceInput.handles[0], aliceInput.inputProof),
+    );
+    const bobInput = await poolInput(pool, bob, 30n);
+    await pool.connect(bob).deposit(bobInput.handles[0], bobInput.inputProof);
+    const prizeInput = await poolInput(pool, funder, 50n);
+    const fundingReceipt = await receiptOf(
+      pool.connect(funder).fundPrize(prizeInput.handles[0], prizeInput.inputProof),
+    );
+
+    await pool.configureSample(10n, false);
+    await pool.requestDraw();
+    await submitPublicDecryption(pool, "total");
+    const selectionReceipt = await receiptOf(pool.processSelectionBatch(8));
+    await submitPublicDecryption(pool, "result");
+    const syncReceipt = await receiptOf(pool.processNextDrawSyncBatch(8));
+    const claimReceipt = await receiptOf(pool.connect(bob).claim());
+    const withdrawalInput = await poolInput(pool, alice, 10n);
+    const withdrawalReceipt = await receiptOf(
+      pool.connect(alice).withdraw(withdrawalInput.handles[0], withdrawalInput.inputProof),
+    );
+
+    const measurements = {
+      deposit: fhevm.computeTransactionHCU(depositReceipt),
+      prizeFunding: fhevm.computeTransactionHCU(fundingReceipt),
+      selectionBatch: fhevm.computeTransactionHCU(selectionReceipt),
+      nextDrawSync: fhevm.computeTransactionHCU(syncReceipt),
+      claim: fhevm.computeTransactionHCU(claimReceipt),
+      withdrawal: fhevm.computeTransactionHCU(withdrawalReceipt),
+    };
+
+    for (const [operation, measurement] of Object.entries(measurements)) {
+      const expected = EXPECTED_LIFECYCLE_HCU[operation as keyof typeof EXPECTED_LIFECYCLE_HCU];
+      expect(measurement.globalHCU).to.equal(expected.global);
+      expect(measurement.maxHCUDepth).to.equal(expected.depth);
+    }
+
+    if (process.env.REPORT_HCU === "true") {
+      console.info("confidential pool lifecycle HCU", Object.fromEntries(
+        Object.entries(measurements).map(([operation, measurement]) => [operation, {
+          globalHCU: measurement.globalHCU,
+          maxHCUDepth: measurement.maxHCUDepth,
+        }]),
+      ));
+    }
   });
 
   it("allows withdrawal during a draw while keeping current odds frozen and resyncing the next draw", async function () {

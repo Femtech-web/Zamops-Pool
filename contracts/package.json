@@ -5,6 +5,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:hcu": "REPORT_HCU=true hardhat test --grep HCU",
     "test:pool": "hardhat test test/ConfidentialPrizePool.ts",
     "test:draw-spike": "hardhat test test/EncryptedWeightedDrawSpike.ts",
     "coverage": "hardhat coverage",

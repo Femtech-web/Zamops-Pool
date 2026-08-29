@@ -38,9 +38,28 @@ Encryption hides values, not the existence or timing of activity. The UI says th
 
 The app does not persist decrypted amounts. Revealed values live in component memory and disappear when hidden, navigated away from, or refreshed.
 
+## Authorization and proof chain
+
+### ERC-7984 operator delegation
+
+The first deposit for a selected confidential asset may require one preceding authorization transaction. The saver calls the ERC-7984 wrapper's `setOperator` function with the pool address and a 30-day expiry. The frontend reads `isOperator` and skips this transaction while the authorization remains active.
+
+An ERC-7984 operator can initiate confidential transfers while its authorization is active, so this permission is deliberately scoped to the asset's immutable, non-upgradeable pool contract. The pool's `deposit` function transfers only from `msg.sender` and only using the amount imported from that wallet's encrypted input proof. Operator status does not grant the pool permission to decrypt the wallet's confidential token balance.
+
+### Encrypted-input attestation
+
+The Relayer SDK input builder binds every external ciphertext to both the destination pool and the submitting wallet. The transaction supplies an `externalEuint64` handle and `inputProof`; `FHE.fromExternal` validates the attested input before converting it into an `euint64` usable by the contract. The proof is about ciphertext validity and scope, not the saver's identity or reputation.
+
+For the subsequent ERC-7984 transfer, `FHE.allowTransient` gives the token contract access only during that transaction. Persisted pool values receive `FHE.allowThis`, and only user-readable values receive `FHE.allow(value, saver)`.
+
+### KMS-signed public results
+
+Draw progression publicly decrypts only two deliberately selected values: the frozen combined eligible weight and the winner-found boolean. A relayer or permissionless caller returns the clear value and its signed decryption proof. The pool first requires the exact ciphertext handle requested for that draw and then calls `FHE.checkSignatures` before using the result.
+
+Consequently, the keeper can transport a valid result but cannot substitute another ciphertext, fabricate the aggregate, forge the boolean or choose a winner. The individual weights, random target, comparisons, winner identity and winnings stay encrypted.
+
 ## Draw boundary
 
 Most of the draw remains encrypted. A draw freezes its current weight and prize snapshots, publishes only the aggregate-weight handle for verifiable public decryption, samples an encrypted target, and scans encrypted cumulative weights in bounded batches. A proof-backed boolean confirms whether a valid winner was found; it does not reveal the winner.
 
 Read [draw fairness and accounting](draw-fairness-and-accounting.md) for the full lifecycle.
-

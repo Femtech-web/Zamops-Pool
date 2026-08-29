@@ -4,7 +4,7 @@ This folder contains the public, submission-ready explanation of the protocol. I
 
 ## Recommended reading paths
 
-**Judges:** [judge demo guide](judge-demo-guide.md) → [architecture and privacy](architecture-and-privacy.md) → [testing evidence](testing-and-release-evidence.md)
+**Judges:** [judge demo guide](judge-demo-guide.md) → [architecture and privacy](architecture-and-privacy.md) → [selection rationale](selection-design-rationale.md) → [testing evidence](testing-and-release-evidence.md)
 
 **Users:** [architecture and privacy](architecture-and-privacy.md) → [draw fairness and accounting](draw-fairness-and-accounting.md)
 
@@ -16,8 +16,8 @@ This folder contains the public, submission-ready explanation of the protocol. I
 |---|---|
 | [Architecture and privacy](architecture-and-privacy.md) | What is encrypted, what is public, and how Zama FHEVM is used |
 | [Draw fairness and accounting](draw-fairness-and-accounting.md) | Why principal is protected and how weighted selection works |
+| [Selection design rationale](selection-design-rationale.md) | Why the prototype uses snapshot-weighted cumulative ranges, what TWAB and fixed slots optimize, and when to reconsider |
 | [Deployment and operations](deployment-and-operations.md) | How to configure, deploy, verify, monitor, and recover the system |
 | [Testing and release evidence](testing-and-release-evidence.md) | Which journeys passed and where the on-chain proof lives |
 | [Security and limitations](security-and-limitations.md) | Trust boundaries, known limits, and production requirements |
 | [Judge demo guide](judge-demo-guide.md) | The shortest reliable path through the live product |
-

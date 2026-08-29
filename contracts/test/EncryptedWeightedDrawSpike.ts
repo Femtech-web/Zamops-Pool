@@ -8,6 +8,9 @@ import type {
 } from "../typechain-types";
 
 describe("EncryptedWeightedDrawSpike", function () {
+  const EXPECTED_SAMPLER_HCU = { global: 1_968_144, depth: 607_000 } as const;
+  const EXPECTED_MAX_BATCH_HCU = { global: 4_792_080, depth: 1_709_032 } as const;
+
   before(function () {
     if (!fhevm.isMock) this.skip();
   });
@@ -289,10 +292,13 @@ describe("EncryptedWeightedDrawSpike", function () {
     if (!batchReceipt) throw new Error("Selection batch transaction was not mined");
     const batchHcu = fhevm.computeTransactionHCU(batchReceipt);
 
-    expect(startHcu.globalHCU).to.be.greaterThan(0);
-    expect(batchHcu.globalHCU).to.be.greaterThan(0);
-    expect(startHcu.globalHCU).to.be.lessThan(20_000_000);
-    expect(batchHcu.globalHCU).to.be.lessThan(20_000_000);
+    // These are regression gates for the pinned FHEVM dependencies. If an
+    // intentional dependency or algorithm change moves them, review the
+    // Blockscout operation trace before updating the expected values.
+    expect(startHcu.globalHCU).to.equal(EXPECTED_SAMPLER_HCU.global);
+    expect(startHcu.maxHCUDepth).to.equal(EXPECTED_SAMPLER_HCU.depth);
+    expect(batchHcu.globalHCU).to.equal(EXPECTED_MAX_BATCH_HCU.global);
+    expect(batchHcu.maxHCUDepth).to.equal(EXPECTED_MAX_BATCH_HCU.depth);
 
     if (process.env.REPORT_HCU === "true") {
       console.info("weighted draw HCU", {
