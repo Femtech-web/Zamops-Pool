@@ -17,6 +17,21 @@ ZamOps Pool is a confidential no-loss prize-savings protocol built on [Zama FHEV
 | Canonical factory | [`0xEB98…4Aa2`](https://sepolia.etherscan.io/address/0xEB98e21687d099d3c2F222E69fC728F1f6904Aa2) |
 | Languages | English, Spanish, French, Simplified Chinese, Korean, Vietnamese |
 
+## PoolTogether's core mechanic, made confidential
+
+[PoolTogether](https://dev.pooltogether.com/protocol/introduction/) established the prize-savings loop at the heart of this project: pool deposits, use separately generated yield for random prizes, give larger savings proportionally better chances, and let savers withdraw their principal. ZamOps implements that core mechanic while using Zama FHEVM to prevent the financial values and selection process from becoming public blockchain data.
+
+| Prize-savings principle | ZamOps implementation | Confidential extension |
+|---|---|---|
+| Pool savings | Savers deposit ERC-7984 confidential tokens into an asset-specific shared pool | Individual deposit amounts and balances remain encrypted |
+| Savings determine eligibility | Every encrypted deposit increases principal and draw weight | Individual weights and implied odds are never published |
+| More savings means better odds | Odds are exactly `encrypted weight ÷ combined eligible weight` | Encrypted comparisons select the winner without exposing those odds |
+| Yield funds prizes | Separately supplied mock yield enters an encrypted prize reserve | Prize funding, awarded winnings and claims remain confidential |
+| Random prize distribution | `FHE.randEuint64` generates an onchain encrypted random target | The keeper cannot provide the random number or choose the winner |
+| Principal remains protected | Principal, prize reserves and winnings use separate encrypted accounting | Principal remains confidential and withdrawable throughout every draw stage |
+| Draws repeat automatically | One-hour pools are advanced through permissionless functions by a scheduled keeper | Automation can observe lifecycle state but cannot read financial values |
+| Winners receive prizes | Winners privately reveal and claim encrypted winnings | Winner identity is not emitted by pool draw events |
+
 ## Understand the complete journey in three minutes
 
 1. Connect MetaMask or Rabby on Sepolia and claim a faucet token.
