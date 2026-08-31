@@ -16,19 +16,25 @@ const STORAGE_KEY = "zamops-pool-locale";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<LocaleCode>(defaultLocale);
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!localeDefinitions.some((definition) => definition.code === saved)) return;
-    const restoreLocale = window.setTimeout(() => setLocale(saved as LocaleCode), 0);
+    const restoreLocale = window.setTimeout(() => {
+      if (localeDefinitions.some((definition) => definition.code === saved)) {
+        setLocale(saved as LocaleCode);
+      }
+      setRestored(true);
+    }, 0);
     return () => window.clearTimeout(restoreLocale);
   }, []);
 
   useEffect(() => {
+    if (!restored) return;
     const definition = localeDefinitions.find((item) => item.code === locale);
     document.documentElement.lang = definition?.htmlLang ?? "en";
     window.localStorage.setItem(STORAGE_KEY, locale);
-  }, [locale]);
+  }, [locale, restored]);
 
   const value = useMemo<I18nContextValue>(
     () => ({

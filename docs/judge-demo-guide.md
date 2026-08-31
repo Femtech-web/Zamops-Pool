@@ -8,7 +8,7 @@
 4. Return to the pool, deposit a private amount, and reveal/hide **Your principal**.
 5. Open **Activity**, reveal the encrypted amount inline, hide it, open the detail sheet, and reveal it again.
 6. Show the draw status and explain that automation checks every ten minutes; completion normally occurs about 60–70 minutes after reopening.
-7. Open the canonical selection transaction's [Blockscout FHE operations](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718) view and point out that it independently lists the encrypted additions, comparisons and selections with their HCU, without revealing the underlying values.
+7. Open the canonical selection transaction's [Blockscout FHE operations](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718?tab=fhe_operations) view and point out that it independently lists the encrypted additions, comparisons and selections with their HCU, without revealing the underlying values.
 8. After completion, reveal winnings, claim, and withdraw principal.
 
 ## Full confidential journey

@@ -29,8 +29,10 @@ export function LandingPage() {
         <nav aria-label="Homepage">
           <a href="#how">{t("landing.navHow")}</a>
           <a href="#privacy">{t("landing.navPrivacy")}</a>
+          <Link href="/docs">{t("landing.navDocs")}</Link>
         </nav>
         <div className="landing-actions">
+          <Link className="landing-docs-small" href="/docs">{t("landing.navDocs")}</Link>
           <LanguagePicker />
           <Link className="landing-launch-small" href="/app">{t("landing.launch")}</Link>
         </div>

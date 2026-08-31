@@ -189,7 +189,7 @@ The next design review should benchmark at least three candidates with the same 
 
 - [Draw fairness and accounting](draw-fairness-and-accounting.md)
 - [Testing and release evidence](testing-and-release-evidence.md)
-- [Canonical Blockscout FHE operation trace](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718)
+- [Canonical Blockscout FHE operation trace](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718?tab=fhe_operations)
 - [Zama encrypted randomness](https://docs.zama.org/protocol/solidity-guides/smart-contract/operations/random)
 - [Zama HCU model](https://docs.zama.org/protocol/solidity-guides/development-guide/hcu)
 - [PoolTogether TWAB design](https://dev.pooltogether.com/protocol/design/twab-controller/)

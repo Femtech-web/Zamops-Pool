@@ -9,6 +9,7 @@ ZamOps Pool is a confidential no-loss prize-savings protocol built on [Zama FHEV
 | | |
 |---|---|
 | Application | [https://pool.zamops.xyz](https://pool.zamops.xyz) |
+| One-page product guide | [https://pool.zamops.xyz/docs](https://pool.zamops.xyz/docs) |
 | Network | Ethereum Sepolia (`11155111`) |
 | FHE | Zama FHEVM Solidity `0.11.1`, relayer SDK `0.4.1` |
 | Confidential token standard | OpenZeppelin ERC-7984 |
@@ -204,9 +205,9 @@ Every canonical transaction link and measurement is in [testing and release evid
 
 ### Independently inspect the encrypted computation
 
-Blockscout exposes the FHE operations executed by a confidential transaction without revealing their plaintext operands. The canonical cUSDC selection transaction shows **27 FHE operations**, **1,797,102 total HCU** and **899,000 maximum HCU depth**, including encrypted addition, comparison, boolean logic and conditional selection. [Inspect the selection operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718).
+Blockscout exposes the FHE operations executed by a confidential transaction without revealing their plaintext operands. The canonical cUSDC selection transaction shows **27 FHE operations**, **1,797,102 total HCU** and **899,000 maximum HCU depth**, including encrypted addition, comparison, boolean logic and conditional selection. [Inspect the selection operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x043053976a6029c381ccabc349ca3b64456d3cd7619707b16872d520b493c718?tab=fhe_operations).
 
-The winning confidential claim independently shows **7 FHE operations**, **586,064 total HCU** and **369,000 maximum depth**. [Inspect the claim operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x8fcb680beb289e7134dfffd9fbfb6f424c58f974a58a4922c2910e30f82a660f).
+The winning confidential claim independently shows **7 FHE operations**, **586,064 total HCU** and **369,000 maximum depth**. [Inspect the claim operation trace on Blockscout](https://eth-sepolia.blockscout.com/tx/0x8fcb680beb289e7134dfffd9fbfb6f424c58f974a58a4922c2910e30f82a660f?tab=fhe_operations).
 
 HCU measures homomorphic computation, not Ethereum gas. **Total HCU** adds the cost of every FHE operation in a transaction; **maximum HCU depth** follows the most expensive dependency chain, reflecting how much encrypted work must happen sequentially even when independent operations can run in parallel. Local tests calculate both from FHE operation logs and pin expected values as regression gates; Blockscout provides independent evidence for the deployed transactions.
 
