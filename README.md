@@ -6,6 +6,8 @@ ZamOps Pool is a confidential no-loss prize-savings protocol built on [Zama FHEV
 
 **Live app:** [pool.zamops.xyz](https://pool.zamops.xyz)
 
+**Demo video:** [Watch the ZamOps Pool walkthrough](https://youtu.be/aAzZKCBuAuU)
+
 | | |
 |---|---|
 | Application | [https://pool.zamops.xyz](https://pool.zamops.xyz) |
