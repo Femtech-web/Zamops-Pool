@@ -17,6 +17,7 @@ const DEFAULT_FAUCET = "0x6148D5A8B6023CC52aC3cc71d22a7340B5b2Cc9F";
 const DEFAULT_FAUCET_SPONSOR = "0xd04BBA49865f57840D4F03CCf541961906843AF1";
 const MAX_EXPIRY = 281_474_976_710_655n;
 const DEPLOYMENT_BLOCK = 11_477_441;
+const LOG_QUERY_BLOCK_SPAN = 49_000;
 const BATCH_SIZE = 8;
 const DEFAULT_MIN_BALANCE_ETH = "0.02";
 const DEFAULT_STALL_THRESHOLD_MINUTES = 20;
@@ -261,20 +262,41 @@ async function advanceToOpen(
 }
 
 async function prizeAlreadyPrepared(pool: ReturnType<typeof ConfidentialPrizePool__factory.connect>) {
-  const [funding, requests, cancelled, completed, reopened] = await Promise.all([
-    pool.queryFilter(pool.filters.EncryptedPrizeFunded(), DEPLOYMENT_BLOCK),
-    pool.queryFilter(pool.filters.TotalDecryptionRequested(), DEPLOYMENT_BLOCK),
-    pool.queryFilter(pool.filters.DrawCancelledEmpty(), DEPLOYMENT_BLOCK),
-    pool.queryFilter(pool.filters.DrawCompleted(), DEPLOYMENT_BLOCK),
-    pool.queryFilter(pool.filters.PoolReopened(), DEPLOYMENT_BLOCK),
-  ]);
-  const events = [
-    ...funding.map((event) => ({ kind: "fund" as const, event })),
-    ...requests.map((event) => ({ kind: "request" as const, event })),
-    ...cancelled.map((event) => ({ kind: "cancel" as const, event })),
-    ...completed.map((event) => ({ kind: "complete" as const, event })),
-    ...reopened.map((event) => ({ kind: "reopen" as const, event })),
-  ].sort((left, right) => left.event.blockNumber - right.event.blockNumber || left.event.index - right.event.index);
+  const kindByEvent = {
+    EncryptedPrizeFunded: "fund",
+    TotalDecryptionRequested: "request",
+    DrawCancelledEmpty: "cancel",
+    DrawCompleted: "complete",
+    PoolReopened: "reopen",
+  } as const;
+  const lifecycleTopics = (Object.keys(kindByEvent) as Array<keyof typeof kindByEvent>)
+    .map((name) => pool.interface.getEvent(name)!.topicHash);
+  const latestBlock = await ethers.provider.getBlockNumber();
+  const poolAddress = await pool.getAddress();
+  const events: Array<{
+    kind: (typeof kindByEvent)[keyof typeof kindByEvent];
+    blockNumber: number;
+    index: number;
+  }> = [];
+
+  // Public RPCs commonly cap eth_getLogs at 50,000 blocks. Page the lifecycle
+  // history so the keeper remains reliable as Sepolia moves beyond deployment.
+  for (let fromBlock = DEPLOYMENT_BLOCK; fromBlock <= latestBlock; fromBlock += LOG_QUERY_BLOCK_SPAN) {
+    const toBlock = Math.min(fromBlock + LOG_QUERY_BLOCK_SPAN - 1, latestBlock);
+    const logs = await ethers.provider.getLogs({
+      address: poolAddress,
+      fromBlock,
+      toBlock,
+      topics: [lifecycleTopics],
+    });
+    for (const log of logs) {
+      const parsed = pool.interface.parseLog(log);
+      if (!parsed || !(parsed.name in kindByEvent)) continue;
+      const eventName = parsed.name as keyof typeof kindByEvent;
+      events.push({ kind: kindByEvent[eventName], blockNumber: log.blockNumber, index: log.index });
+    }
+  }
+  events.sort((left, right) => left.blockNumber - right.blockNumber || left.index - right.index);
 
   let phase: "open" | "drawing" | "syncing" = "open";
   let currentFunded = false;
